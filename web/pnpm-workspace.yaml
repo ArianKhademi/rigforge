@@ -1,0 +1,5 @@
+# pnpm settings for this package (it is not a multi-package workspace).
+# pnpm does not run dependency install scripts unless they are listed here;
+# esbuild (used by tsx) needs its script to fetch the platform binary.
+allowBuilds:
+  esbuild: true
