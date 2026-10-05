@@ -1,47 +1,47 @@
 $ kubectl get pods -n rigforge
 NAME                       READY   STATUS    RESTARTS   AGE
-api-698848985d-fmjkd       1/1     Running   0          2m28s
-api-698848985d-z2x6k       1/1     Running   0          2m17s
-issuer-d65949fcc-tnwk2     1/1     Running   0          2m28s
-minio-5cdd5d699b-4gdc4     1/1     Running   0          2m28s
-postgres-0                 1/1     Running   0          2m27s
-redis-56b67dcb96-rv226     1/1     Running   0          34m
-traefik-858678c76c-bfdd7   1/1     Running   0          34m
-web-57d4667c94-wpmqm       1/1     Running   0          16m
-web-57d4667c94-xq8st       1/1     Running   0          16m
-worker-685ff9699c-mfb48    1/1     Running   0          2m28s
-worker-685ff9699c-rrbwq    1/1     Running   0          2m28s
+api-698848985d-9z2gx       1/1     Running   0          2m33s
+api-698848985d-h8gdk       1/1     Running   0          2m33s
+issuer-d65949fcc-r4hr8     1/1     Running   0          2m33s
+minio-5cdd5d699b-w2kdl     1/1     Running   0          2m33s
+postgres-0                 1/1     Running   0          2m33s
+redis-56b67dcb96-pp74g     1/1     Running   0          2m33s
+traefik-858678c76c-zpcn8   1/1     Running   0          2m33s
+web-5c6c8c5855-bqz8b       1/1     Running   0          2m33s
+web-5c6c8c5855-h5ckl       1/1     Running   0          2m33s
+worker-6fbbfcb9f-crftm     1/1     Running   0          2m33s
+worker-6fbbfcb9f-rvjd9     1/1     Running   0          2m33s
 
 $ kubectl get deploy,statefulset,svc,ingress,pvc -n rigforge
 NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/api       2/2     2            2           34m
-deployment.apps/issuer    1/1     1            1           34m
-deployment.apps/minio     1/1     1            1           34m
-deployment.apps/redis     1/1     1            1           34m
-deployment.apps/traefik   1/1     1            1           34m
-deployment.apps/web       2/2     2            2           34m
-deployment.apps/worker    2/2     2            2           34m
+deployment.apps/api       2/2     2            2           2m33s
+deployment.apps/issuer    1/1     1            1           2m33s
+deployment.apps/minio     1/1     1            1           2m33s
+deployment.apps/redis     1/1     1            1           2m33s
+deployment.apps/traefik   1/1     1            1           2m33s
+deployment.apps/web       2/2     2            2           2m33s
+deployment.apps/worker    2/2     2            2           2m33s
 
 NAME                        READY   AGE
-statefulset.apps/postgres   1/1     34m
+statefulset.apps/postgres   1/1     2m33s
 
 NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
-service/api        ClusterIP   10.96.73.247    <none>        8080/TCP         34m
-service/issuer     ClusterIP   10.96.10.76     <none>        8090/TCP         34m
-service/minio      NodePort    10.96.72.10     <none>        9000:30900/TCP   34m
-service/postgres   ClusterIP   None            <none>        5432/TCP         34m
-service/redis      ClusterIP   10.96.200.218   <none>        6379/TCP         34m
-service/traefik    NodePort    10.96.71.77     <none>        80:30080/TCP     34m
-service/web        ClusterIP   10.96.194.1     <none>        8080/TCP         34m
+service/api        ClusterIP   10.96.114.121   <none>        8080/TCP         2m33s
+service/issuer     ClusterIP   10.96.235.31    <none>        8090/TCP         2m33s
+service/minio      NodePort    10.96.251.148   <none>        9000:30900/TCP   2m33s
+service/postgres   ClusterIP   None            <none>        5432/TCP         2m33s
+service/redis      ClusterIP   10.96.10.96     <none>        6379/TCP         2m33s
+service/traefik    NodePort    10.96.104.90    <none>        80:30080/TCP     2m33s
+service/web        ClusterIP   10.96.127.160   <none>        8080/TCP         2m33s
 
 NAME                                 CLASS    HOSTS   ADDRESS   PORTS   AGE
-ingress.networking.k8s.io/rigforge   <none>   *                 80      34m
+ingress.networking.k8s.io/rigforge   <none>   *                 80      2m33s
 
 NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
-persistentvolumeclaim/data-postgres-0   Bound    pvc-332a0a53-25c1-4707-a57d-e8ad3d83b861   1Gi        RWO            standard       <unset>                 34m
-persistentvolumeclaim/minio-data        Bound    pvc-001d66f9-525b-4096-bf49-f06273ce09a2   5Gi        RWO            standard       <unset>                 34m
-persistentvolumeclaim/redis-data        Bound    pvc-4d8db2b7-dc4b-4ead-a88b-dbcf34ea51e9   1Gi        RWO            standard       <unset>                 34m
+persistentvolumeclaim/data-postgres-0   Bound    pvc-299268b9-9357-4471-9459-346b2c3ec50e   1Gi        RWO            standard       <unset>                 2m33s
+persistentvolumeclaim/minio-data        Bound    pvc-c403d328-6d50-40fe-81cd-01f6f5177f72   5Gi        RWO            standard       <unset>                 2m33s
+persistentvolumeclaim/redis-data        Bound    pvc-f549c0cd-481c-4b93-9fdf-abd081886766   1Gi        RWO            standard       <unset>                 2m33s
 
 $ kubectl get nodes
-NAME                     STATUS   ROLES           AGE   VERSION
-rigforge-control-plane   Ready    control-plane   40m   v1.37.0
+NAME                     STATUS   ROLES           AGE     VERSION
+rigforge-control-plane   Ready    control-plane   3m10s   v1.37.0

@@ -308,20 +308,20 @@ make kind-down
 ```text
 $ kubectl get pods -n rigforge
 NAME                       READY   STATUS    RESTARTS   AGE
-api-698848985d-fmjkd       1/1     Running   0          2m28s
-api-698848985d-z2x6k       1/1     Running   0          2m17s
-issuer-d65949fcc-tnwk2     1/1     Running   0          2m28s
-minio-5cdd5d699b-4gdc4     1/1     Running   0          2m28s
-postgres-0                 1/1     Running   0          2m27s
-redis-56b67dcb96-rv226     1/1     Running   0          34m
-traefik-858678c76c-bfdd7   1/1     Running   0          34m
-web-57d4667c94-wpmqm       1/1     Running   0          16m
-web-57d4667c94-xq8st       1/1     Running   0          16m
-worker-685ff9699c-mfb48    1/1     Running   0          2m28s
-worker-685ff9699c-rrbwq    1/1     Running   0          2m28s
+api-698848985d-9z2gx       1/1     Running   0          2m33s
+api-698848985d-h8gdk       1/1     Running   0          2m33s
+issuer-d65949fcc-r4hr8     1/1     Running   0          2m33s
+minio-5cdd5d699b-w2kdl     1/1     Running   0          2m33s
+postgres-0                 1/1     Running   0          2m33s
+redis-56b67dcb96-pp74g     1/1     Running   0          2m33s
+traefik-858678c76c-zpcn8   1/1     Running   0          2m33s
+web-5c6c8c5855-bqz8b       1/1     Running   0          2m33s
+web-5c6c8c5855-h5ckl       1/1     Running   0          2m33s
+worker-6fbbfcb9f-crftm     1/1     Running   0          2m33s
+worker-6fbbfcb9f-rvjd9     1/1     Running   0          2m33s
 ```
 
-(Ages differ because pods were rolled during the test runs described on this page: the retry demo scales MinIO and the workers down and up.)
+If port 8880 or 9900 is taken on your machine, choose others when creating the cluster: `RIGFORGE_HTTP_PORT=8881 RIGFORGE_S3_PORT=9901 make deploy-kind`.
 
 What is in the manifests ([`deploy/k8s/base`](deploy/k8s/base)):
 

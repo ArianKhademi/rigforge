@@ -13,13 +13,21 @@
 #
 # Needs docker, kind, kubectl and openssl. Safe to run again: every step is
 # idempotent, and a second run redeploys freshly built images.
+#
+# Environment
+#   RIGFORGE_HTTP_PORT   host port for the web app and api (default 8880)
+#   RIGFORGE_S3_PORT     host port for MinIO's S3 api (default 9900)
+# Set these if the defaults are taken on your machine. They only take effect
+# when the cluster is created; `make kind-down` first to change them.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLUSTER="rigforge"
 CONTEXT="kind-$CLUSTER"
 OVERLAY="$ROOT/deploy/k8s/overlays/kind"
-URL="http://localhost:8880"
+HTTP_PORT="${RIGFORGE_HTTP_PORT:-8880}"
+S3_PORT="${RIGFORGE_S3_PORT:-9900}"
+URL="http://localhost:$HTTP_PORT"
 IMAGES=(rigforge-api:dev rigforge-issuer:dev rigforge-worker:dev rigforge-web:dev)
 
 k() { kubectl --context "$CONTEXT" "$@"; }
@@ -39,7 +47,10 @@ echo "==> 1/5 cluster"
 if kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
   echo "kind cluster \"$CLUSTER\" already exists"
 else
-  kind create cluster --config "$ROOT/deploy/kind/cluster.yaml" --wait 120s
+  # The cluster config maps node ports to the host ports 8880 and 9900;
+  # substitute the chosen ones (a no-op with the defaults).
+  sed -e "s/hostPort: 8880/hostPort: $HTTP_PORT/" -e "s/hostPort: 9900/hostPort: $S3_PORT/" \
+    "$ROOT/deploy/kind/cluster.yaml" | kind create cluster --config - --wait 120s
 fi
 
 echo "==> 2/5 images"
@@ -79,7 +90,8 @@ for _ in $(seq 1 60); do
 done
 REDEPLOY=0
 if k -n rigforge get deployment api >/dev/null 2>&1; then REDEPLOY=1; fi
-k apply -k "$OVERLAY"
+# Presigned URLs must name the host port the browser can reach MinIO on.
+kubectl kustomize "$OVERLAY" | sed "s#http://localhost:9900#http://localhost:$S3_PORT#g" | k apply -f -
 if [ "$REDEPLOY" -eq 1 ]; then
   # The image tag (:dev) does not change between builds, so on a redeploy
   # the Deployments have to be told to pick up the freshly loaded images.
