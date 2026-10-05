@@ -1,0 +1,42 @@
+== Rigforge resumable upload test ==
+date:    2026-10-05T07:46:14Z
+api:     http://localhost:8080
+host:    Darwin arm64, Apple M4
+file:    tmp/resume-test/big_2254857830.mov
+size:    2255235452 bytes (2.100 GiB, 2.255 GB)
+
+-- run 1: upload, to be killed at ~50% --
+upload:  cb5fdc19-db6e-46aa-811b-c38044fd069f
+plan:    34 parts of 67108864 bytes (64 MiB), last part 40642940 bytes
+sent SIGKILL to the client (pid 91258) when the server had recorded 19 of 34 parts
+client exit status: 137 (killed by signal 9); no client process left
+  PUTs the client had finished:        19 parts
+  PUTs in flight when it was killed:   [20,21,22,23]
+bucket part list before restart: 19 of 34 parts, 1275068416 bytes (19 recorded by the api)
+  parts: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+
+-- run 2: restart the client --
+client resumed upload cb5fdc19-db6e-46aa-811b-c38044fd069f
+  parts found on the server and skipped: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+  parts PUT by run 2:                    [20,21,22,23,24,25,26,27,28,29,30,31,32,33,34]
+bucket part list after restart:  34 of 34 parts, 2255235452 bytes
+
+-- checks --
+parts completed before the kill:              19
+of those, re-sent after the restart:          0  []
+parts whose ETag or LastModified changed:     0  []
+parts missing before the restart:             15
+parts sent after the restart:                 15
+bytes in the bucket vs file size:             2255235452 = 2255235452
+part ETag = MD5 of the file's bytes:          34 of 34 match
+
+-- complete --
+upload completed: asset 52b82c1f-b288-4696-b3fd-d750d3e80a39, source object 2255235452 bytes (size verified by the api against the bucket)
+cleaned up: asset deleted
+
+RESULT: PASS
+  file size:                         2255235452 bytes (2.10 GiB)
+  parts in total:                    34
+  parts completed before the kill:   19
+  parts re-sent after the restart:   0
+  parts sent after the restart:      15

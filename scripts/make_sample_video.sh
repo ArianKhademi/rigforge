@@ -46,7 +46,7 @@ big)
   out="${2:-$ROOT/tmp/big_2.1GiB.mov}"
   bytes="${3:-2254857830}" # 2.1 GiB
   mkdir -p "$(dirname "$out")"
-  echo "generating $out (target $bytes bytes)"
+  echo "generating ${out#"$ROOT"/} (target $bytes bytes)"
   # -stream_loop -1 repeats the sample forever; -fs stops writing once the
   # file reaches the size limit and finalises the container, so the result is
   # a complete, playable file of (very nearly) the requested size.
@@ -60,7 +60,7 @@ big)
   size="$(wc -c <"$out" | tr -d ' ')"
   duration="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$out")"
   gib="$(awk -v s="$size" 'BEGIN { printf "%.2f", s / 1073741824 }')"
-  echo "wrote $out: $size bytes ($gib GiB), ${duration}s of video"
+  echo "wrote ${out#"$ROOT"/}: $size bytes ($gib GiB), ${duration}s of video"
   ;;
 
 *)
