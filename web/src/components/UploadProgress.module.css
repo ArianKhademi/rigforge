@@ -86,39 +86,41 @@
   transition: height 0.2s linear;
 }
 
-.done {
+/* Part states are scoped to .part so the legend swatches, which reuse the
+   state class names, only pick up what they ask for below. */
+.part.done {
   background: var(--ok-soft);
   border-color: rgba(79, 209, 165, 0.55);
 }
 
-.done .partNumber {
+.part.done .partNumber {
   color: var(--ok);
 }
 
 /* Parts that were already on the server when this session started. */
-.done.resumed {
+.part.done.resumed {
   background: var(--info-soft);
   border-color: rgba(111, 168, 255, 0.55);
 }
 
-.done.resumed .partNumber {
+.part.done.resumed .partNumber {
   color: var(--info);
 }
 
-.uploading {
+.part.uploading {
   border-color: var(--accent);
 }
 
-.uploading .partNumber {
+.part.uploading .partNumber {
   color: var(--text);
 }
 
-.failed {
+.part.failed {
   background: var(--err-soft);
   border-color: var(--err);
 }
 
-.failed .partNumber {
+.part.failed .partNumber {
   color: var(--err);
 }
 

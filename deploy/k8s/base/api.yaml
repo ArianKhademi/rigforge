@@ -63,6 +63,14 @@ spec:
           readinessProbe:
             httpGet: { path: /readyz, port: http }
             periodSeconds: 5
+          # On a rollout, keep serving for a few seconds after the pod is
+          # marked terminating: the ingress controller needs a moment to stop
+          # routing to it, and requests sent in that window would otherwise
+          # hit a closed port (a brief 502/504 during deploys).
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           resources:
             requests:
               cpu: 50m

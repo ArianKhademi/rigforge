@@ -154,6 +154,12 @@ class Worker:
         msg = self.queue.next()
         if msg is None:
             return False
+        if self._stopping.is_set():
+            # SIGTERM arrived while this worker was waiting for work. Starting
+            # a job now would likely be cut short when the pod is killed, so
+            # hand the message back for a worker that is staying.
+            self.queue.release(msg)
+            return False
         self.process(msg)
         return True
 
@@ -194,21 +200,29 @@ class Worker:
         except JobGone:
             log.info("job %s was deleted while running; stopping", msg.job_id)
             self.queue.ack(msg)
-        except PermanentError as exc:
-            # Retrying cannot help. Row first, then queue: if we die in
-            # between, the FAILED guard above completes the move on redelivery.
-            log.warning("job %s failed permanently: %s", msg.job_id, exc)
-            self.store.fail(msg.job_id, str(exc))
-            self.queue.dead_letter(msg, str(exc))
         except Exception as exc:
-            error = f"{type(exc).__name__}: {exc}"
-            log.exception("job %s attempt %d failed", msg.job_id, msg.attempt)
-            if msg.attempt >= self.queue.cfg.max_attempts:
-                self.store.fail(msg.job_id, error)
-                self.queue.dead_letter(msg, error)
+            # Whatever went wrong, it does not matter if the job itself is
+            # gone: deleting an asset removes its source object, so a running
+            # job then fails with "source object does not exist". That is a
+            # cancelled job, not a failure worth a dead-letter entry.
+            if self.store.load(msg.job_id) is None:
+                log.info("job %s was deleted while running (%s); dropping", msg.job_id, type(exc).__name__)
+                self.queue.ack(msg)
+            elif isinstance(exc, PermanentError):
+                # Retrying cannot help. Row first, then queue: if we die in
+                # between, the FAILED guard above completes the move on redelivery.
+                log.warning("job %s failed permanently: %s", msg.job_id, exc)
+                self.store.fail(msg.job_id, str(exc))
+                self.queue.dead_letter(msg, str(exc))
             else:
-                decision = self.queue.retry(msg, error)
-                self.store.schedule_retry(msg.job_id, decision.next_attempt, decision.retry_at, error)
+                error = f"{type(exc).__name__}: {exc}"
+                log.exception("job %s attempt %d failed", msg.job_id, msg.attempt)
+                if msg.attempt >= self.queue.cfg.max_attempts:
+                    self.store.fail(msg.job_id, error)
+                    self.queue.dead_letter(msg, error)
+                else:
+                    decision = self.queue.retry(msg, error)
+                    self.store.schedule_retry(msg.job_id, decision.next_attempt, decision.retry_at, error)
         else:
             # Row first, then ack: if we die in between, the DONE guard above
             # acks the redelivered message without redoing the work.

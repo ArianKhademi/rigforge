@@ -247,6 +247,28 @@ def test_job_deleted_while_running_is_stopped_and_dropped(rdb, prefix):
     assert h.dead() == [], "a deleted job is not a failure"
 
 
+@pytest.mark.parametrize(
+    "error",
+    [PermanentError("source object assets/x/source.mp4 does not exist"), ConnectionError("bucket unreachable")],
+    ids=["permanent", "transient"],
+)
+def test_failure_of_a_deleted_job_is_not_dead_lettered_or_retried(rdb, prefix, error):
+    h = Harness(rdb, prefix)
+    job = h.submit()
+
+    def handler(row, progress):
+        # Deleting the asset removes its source object, so the running job
+        # fails; the failure is a consequence of the delete, not a real error.
+        h.store.delete(job)
+        raise error
+
+    h.worker.handler = handler
+    h.worker.run_once()
+
+    h.assert_queue_empty()
+    assert h.dead() == []
+
+
 def test_row_marked_failed_but_not_yet_dead_lettered_is_finished_on_redelivery(rdb, prefix):
     h = Harness(rdb, prefix)
     job = h.submit()
@@ -259,6 +281,23 @@ def test_row_marked_failed_but_not_yet_dead_lettered_is_finished_on_redelivery(r
     [dead] = h.dead()
     assert dead["error"] == "ffprobe: not a video"
     h.assert_queue_empty()
+
+
+def test_worker_that_is_shutting_down_hands_a_new_job_straight_back(rdb, prefix):
+    leaving = Harness(rdb, prefix, consumer="worker-leaving")
+    job = leaving.submit()
+    leaving.worker.stop()  # SIGTERM during a rollout
+
+    assert leaving.worker.run_once() is False
+    assert leaving.calls == [], "a worker that is stopping must not start a job"
+    # The job is back on the stream, owned by nobody, attempt unchanged...
+    assert leaving.stream_len() == 1 and leaving.pending() == 0
+
+    # ...so a worker that is staying gets it immediately, not after the
+    # visibility timeout.
+    staying = Harness(rdb, prefix, consumer="worker-staying")
+    msg = staying.queue.next()
+    assert msg is not None and msg.job_id == job and msg.attempt == 1 and not msg.reclaimed
 
 
 def test_message_that_keeps_killing_workers_is_dead_lettered(rdb, prefix):

@@ -1,0 +1,47 @@
+{
+  "uploadId": "173e94e0-0d53-4408-bfaa-f66431025852",
+  "assetId": "c1adc720-86bb-4d6a-92ef-db094ef13ee6",
+  "filename": "e2e_380mb.mov",
+  "size": 399116768,
+  "contentType": "video/quicktime",
+  "partSize": 67108864,
+  "partCount": 6,
+  "status": "uploading",
+  "parts": [
+    {
+      "partNumber": 1,
+      "etag": "a416fd30e3a81616bed38e62be22a5ef",
+      "recordedAt": "2026-10-05T09:00:37.460827Z"
+    },
+    {
+      "partNumber": 2,
+      "etag": "e5166b31f1b88396c8aeef79628a09db",
+      "recordedAt": "2026-10-05T09:00:38.092249Z"
+    },
+    {
+      "partNumber": 3,
+      "etag": "e65bee8a17c576336cf1bc72a0d3e308",
+      "recordedAt": "2026-10-05T09:00:38.090854Z"
+    }
+  ],
+  "storageParts": [
+    {
+      "partNumber": 1,
+      "etag": "a416fd30e3a81616bed38e62be22a5ef",
+      "size": 67108864,
+      "lastModified": "2026-10-05T09:00:33.468Z"
+    },
+    {
+      "partNumber": 2,
+      "etag": "e5166b31f1b88396c8aeef79628a09db",
+      "size": 67108864,
+      "lastModified": "2026-10-05T09:00:35.694Z"
+    },
+    {
+      "partNumber": 3,
+      "etag": "e65bee8a17c576336cf1bc72a0d3e308",
+      "size": 67108864,
+      "lastModified": "2026-10-05T09:00:37.673Z"
+    }
+  ]
+}

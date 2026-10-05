@@ -19,6 +19,8 @@ Life of a message
                             back onto the stream with attempt + 1
       attempts exhausted, or a permanent failure
                          -> XADD jobs:dead + XACK + XDEL
+      worker shutting down, message not started
+                         -> XADD a copy + XACK + XDEL (handed straight back)
       worker dies        -> message stays pending; once it has been idle longer
                             than the visibility timeout another worker takes it
                             over with XAUTOCLAIM
@@ -205,6 +207,23 @@ class JobQueue:
         """Success. XDEL after XACK keeps the stream holding only outstanding
         jobs, which makes XLEN a usable queue-depth metric."""
         pipe = self.r.pipeline(transaction=True)
+        pipe.xack(self.cfg.stream, self.cfg.group, msg.id)
+        pipe.xdel(self.cfg.stream, msg.id)
+        pipe.execute()
+
+    def release(self, msg: Message) -> None:
+        """Give a message back, untouched, for another worker to take now.
+
+        Streams have no "nack". Leaving the message pending would work, but it
+        would sit there until the visibility timeout; re-adding it and removing
+        the original in one transaction hands it over immediately. The attempt
+        number is unchanged: nothing was attempted.
+        """
+        pipe = self.r.pipeline(transaction=True)
+        pipe.xadd(
+            self.cfg.stream,
+            {"jobId": msg.job_id, "assetId": msg.asset_id, "type": msg.type, "attempt": str(msg.attempt)},
+        )
         pipe.xack(self.cfg.stream, self.cfg.group, msg.id)
         pipe.xdel(self.cfg.stream, msg.id)
         pipe.execute()
