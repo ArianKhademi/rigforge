@@ -1,0 +1,76 @@
+# The api: stateless, so it runs two replicas behind one Service. Either can
+# serve any request, including a job's SSE stream (state lives in Postgres and
+# updates fan out through Redis pub/sub).
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/ariankhademi/rigforge-api:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: rigforge-config
+          env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: S3_ACCESS_KEY_ID }
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: S3_SECRET_ACCESS_KEY }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: POSTGRES_PASSWORD }
+            # $(VAR) is expanded by Kubernetes from the variables defined above,
+            # so the password stays in the Secret and out of this file.
+            - name: DATABASE_URL
+              value: postgres://rigforge:$(POSTGRES_PASSWORD)@postgres:5432/rigforge
+          # Liveness: is the process alive? Failing restarts the container, so
+          # it must not depend on Postgres or Redis.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          # Readiness: can it serve? Failing only removes the pod from the
+          # Service until its dependencies are reachable again.
+          readinessProbe:
+            httpGet: { path: /readyz, port: http }
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

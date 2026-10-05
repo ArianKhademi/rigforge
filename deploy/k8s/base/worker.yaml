@@ -1,0 +1,85 @@
+# The workers: a separate Deployment from the api so the two scale
+# independently. Workers need CPU and memory in bulk (ffmpeg, pose
+# estimation); the api needs almost none. Every replica joins the same Redis
+# consumer group, so adding replicas adds throughput with no coordination.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      # On a rollout or scale-down the worker gets SIGTERM, stops taking new
+      # jobs and finishes the current one. If that takes longer than this, the
+      # pod is killed and another worker reclaims the job from the stream.
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: ghcr.io/ariankhademi/rigforge-worker:latest
+          envFrom:
+            - configMapRef:
+                name: rigforge-config
+          env:
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: S3_ACCESS_KEY_ID }
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: S3_SECRET_ACCESS_KEY }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: POSTGRES_PASSWORD }
+            - name: DATABASE_URL
+              value: postgres://rigforge:$(POSTGRES_PASSWORD)@postgres:5432/rigforge
+            # The pod name is unique per replica: it is the worker's consumer
+            # name in the Redis consumer group.
+            - name: WORKER_NAME
+              valueFrom:
+                fieldRef: { fieldPath: metadata.name }
+          volumeMounts:
+            # Scratch space for the source video and intermediates.
+            - name: work
+              mountPath: /work
+            - name: tmp
+              mountPath: /tmp
+          # A worker has no HTTP port. It touches /tmp/worker.alive on every
+          # loop iteration and on every heartbeat during a job; if the file is
+          # more than two minutes old the worker is hung and gets restarted.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test $(( $(date +%s) - $(stat -c %Y /tmp/worker.alive) )) -lt 120
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              memory: 3Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: work
+          emptyDir:
+            sizeLimit: 20Gi
+        - name: tmp
+          emptyDir: {}

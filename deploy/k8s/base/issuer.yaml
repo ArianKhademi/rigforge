@@ -1,0 +1,66 @@
+# The development token issuer. It signs a token for any name it is given, so
+# it is only for demos: for a real deployment remove it from the
+# kustomization and point JWT_JWKS_URL / JWT_ISSUER / JWT_AUDIENCE in the
+# ConfigMap at an identity provider.
+apiVersion: v1
+kind: Service
+metadata:
+  name: issuer
+spec:
+  selector:
+    app: issuer
+  ports:
+    - port: 8090
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: issuer
+  template:
+    metadata:
+      labels:
+        app: issuer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: issuer
+          image: ghcr.io/ariankhademi/rigforge-issuer:latest
+          ports:
+            - name: http
+              containerPort: 8090
+          env:
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef: { name: rigforge-config, key: JWT_ISSUER }
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef: { name: rigforge-config, key: JWT_AUDIENCE }
+            # The RSA signing key comes from the Secret, so tokens stay valid
+            # across issuer restarts.
+            - name: ISSUER_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef: { name: rigforge-secrets, key: ISSUER_PRIVATE_KEY_PEM }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

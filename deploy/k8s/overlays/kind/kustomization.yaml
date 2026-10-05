@@ -1,0 +1,52 @@
+# kind overlay: the base plus an in-cluster object store (MinIO) and an
+# ingress controller (Traefik), with images built locally and loaded into the
+# cluster by `make deploy-kind`.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rigforge
+resources:
+  - ../../base
+  - minio.yaml
+  - traefik.yaml
+
+# Locally built images, loaded with `kind load docker-image` (no registry).
+images:
+  - name: ghcr.io/ariankhademi/rigforge-api
+    newName: rigforge-api
+    newTag: dev
+  - name: ghcr.io/ariankhademi/rigforge-issuer
+    newName: rigforge-issuer
+    newTag: dev
+  - name: ghcr.io/ariankhademi/rigforge-worker
+    newName: rigforge-worker
+    newTag: dev
+  - name: ghcr.io/ariankhademi/rigforge-web
+    newName: rigforge-web
+    newTag: dev
+
+# The Secret is generated from two git-ignored files that `make deploy-kind`
+# creates. Kustomize appends a hash of the contents to the Secret's name and
+# rewrites every reference, so changing a value rolls the pods that use it.
+secretGenerator:
+  - name: rigforge-secrets
+    envs:
+      - secret.env
+    files:
+      - ISSUER_PRIVATE_KEY_PEM=issuer-key.pem
+
+patches:
+  # Point the api and worker at MinIO. The public endpoint is what the
+  # browser sees: MinIO's NodePort, mapped to localhost:9900.
+  - target:
+      kind: ConfigMap
+      name: rigforge-config
+    patch: |-
+      - op: replace
+        path: /data/S3_ENDPOINT
+        value: http://minio:9000
+      - op: replace
+        path: /data/S3_PUBLIC_ENDPOINT
+        value: http://localhost:9900
+      - op: replace
+        path: /data/S3_CREATE_BUCKET
+        value: "true"

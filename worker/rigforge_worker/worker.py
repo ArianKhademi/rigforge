@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+import redis
+
 from .errors import PermanentError
 from .queue import JobQueue, Message
 
@@ -118,8 +120,25 @@ class Worker:
         """Finish the current job, then exit the loop (SIGTERM handler)."""
         self._stopping.set()
 
+    def wait_for_queue(self, retry_seconds: float = 1.0) -> None:
+        """Create the consumer group, waiting for Redis if it is not up yet.
+
+        On Kubernetes nothing orders pod start-up: a worker can easily start
+        before Redis accepts connections. Waiting here, instead of exiting and
+        letting the pod crash-loop, keeps start-up quiet and restart counts
+        meaningful.
+        """
+        while not self._stopping.is_set():
+            try:
+                self.queue.ensure_group()
+                return
+            except (redis.ConnectionError, redis.TimeoutError) as exc:
+                log.info("waiting for redis: %s", exc)
+                self._mark_alive()
+                time.sleep(retry_seconds)
+
     def run_forever(self) -> None:
-        self.queue.ensure_group()
+        self.wait_for_queue()
         log.info("worker %s consuming", self.queue.consumer)
         while not self._stopping.is_set():
             try:

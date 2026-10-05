@@ -1,0 +1,18 @@
+# Base: everything except the object store and the Secret's values, which
+# differ per environment. Not applied directly; use an overlay.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rigforge
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - redis.yaml
+  - api.yaml
+  - worker.yaml
+  - issuer.yaml
+  - web.yaml
+  - ingress.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: rigforge

@@ -1,0 +1,18 @@
+# kind cluster for `make deploy-kind`: one node that is both control plane and
+# worker. kind runs the node as a Docker container, so anything the browser
+# must reach has to be mapped from the node to the host here.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: rigforge
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # Ingress controller (NodePort 30080): the web app and /api.
+      - containerPort: 30080
+        hostPort: 8880
+        protocol: TCP
+      # MinIO's S3 API (NodePort 30900): presigned URLs point here, because
+      # the browser uploads and downloads straight to the bucket.
+      - containerPort: 30900
+        hostPort: 9900
+        protocol: TCP

@@ -30,3 +30,4 @@ web/playwright-report/
 *.log
 !docs/*.log
 .DS_Store
+deploy/k8s/overlays/*/*.pem

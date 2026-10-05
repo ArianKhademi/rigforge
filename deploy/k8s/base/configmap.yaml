@@ -1,0 +1,20 @@
+# Non-secret configuration shared by the api, the worker and the issuer.
+# Overlays patch the S3_* values for their object store.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rigforge-config
+data:
+  REDIS_URL: redis://redis:6379/0
+  # Cloudflare R2: https://<account id>.r2.cloudflarestorage.com. The browser
+  # uses the same host, so the public endpoint is identical.
+  S3_ENDPOINT: https://ACCOUNT_ID.r2.cloudflarestorage.com
+  S3_PUBLIC_ENDPOINT: https://ACCOUNT_ID.r2.cloudflarestorage.com
+  S3_REGION: auto
+  S3_BUCKET: rigforge-dev
+  S3_CREATE_BUCKET: "false"
+  # Where the api fetches the keys it verifies tokens against. Point these at
+  # a real identity provider to replace the bundled dev issuer.
+  JWT_JWKS_URL: http://issuer:8090/.well-known/jwks.json
+  JWT_ISSUER: rigforge-dev-issuer
+  JWT_AUDIENCE: rigforge-api

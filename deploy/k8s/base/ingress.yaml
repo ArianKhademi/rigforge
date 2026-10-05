@@ -1,0 +1,26 @@
+# One entry point for the browser: /api goes to the api, everything else to
+# the web app. Sharing an origin means the app needs no CORS for api calls.
+# No ingressClassName: the cluster's default IngressClass handles it (the kind
+# overlay installs Traefik as that default).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rigforge
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080

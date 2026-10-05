@@ -1,0 +1,47 @@
+$ kubectl get pods -n rigforge
+NAME                       READY   STATUS    RESTARTS   AGE
+api-69f76b77cf-lkprq       1/1     Running   0          86s
+api-69f76b77cf-s4944       1/1     Running   0          86s
+issuer-6785fbcddd-bm4tv    1/1     Running   0          86s
+minio-c5db5d5d8-vxmsh      1/1     Running   0          86s
+postgres-0                 1/1     Running   0          86s
+redis-56b67dcb96-rv226     1/1     Running   0          86s
+traefik-858678c76c-bfdd7   1/1     Running   0          86s
+web-67c556df9b-dqp5d       1/1     Running   0          86s
+web-67c556df9b-sj62n       1/1     Running   0          86s
+worker-55644f9b4f-btxn8    1/1     Running   0          86s
+worker-55644f9b4f-z24zk    1/1     Running   0          86s
+
+$ kubectl get deploy,statefulset,svc,ingress,pvc -n rigforge
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/api       2/2     2            2           86s
+deployment.apps/issuer    1/1     1            1           86s
+deployment.apps/minio     1/1     1            1           86s
+deployment.apps/redis     1/1     1            1           86s
+deployment.apps/traefik   1/1     1            1           86s
+deployment.apps/web       2/2     2            2           86s
+deployment.apps/worker    2/2     2            2           86s
+
+NAME                        READY   AGE
+statefulset.apps/postgres   1/1     86s
+
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/api        ClusterIP   10.96.73.247    <none>        8080/TCP         86s
+service/issuer     ClusterIP   10.96.10.76     <none>        8090/TCP         86s
+service/minio      NodePort    10.96.72.10     <none>        9000:30900/TCP   86s
+service/postgres   ClusterIP   None            <none>        5432/TCP         86s
+service/redis      ClusterIP   10.96.200.218   <none>        6379/TCP         86s
+service/traefik    NodePort    10.96.71.77     <none>        80:30080/TCP     86s
+service/web        ClusterIP   10.96.194.1     <none>        8080/TCP         86s
+
+NAME                                 CLASS    HOSTS   ADDRESS   PORTS   AGE
+ingress.networking.k8s.io/rigforge   <none>   *                 80      86s
+
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-postgres-0   Bound    pvc-332a0a53-25c1-4707-a57d-e8ad3d83b861   1Gi        RWO            standard       <unset>                 86s
+persistentvolumeclaim/minio-data        Bound    pvc-001d66f9-525b-4096-bf49-f06273ce09a2   5Gi        RWO            standard       <unset>                 86s
+persistentvolumeclaim/redis-data        Bound    pvc-4d8db2b7-dc4b-4ead-a88b-dbcf34ea51e9   1Gi        RWO            standard       <unset>                 86s
+
+$ kubectl get nodes
+NAME                     STATUS   ROLES           AGE     VERSION
+rigforge-control-plane   Ready    control-plane   7m24s   v1.37.0
