@@ -1,0 +1,177 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.head strong {
+  font-size: 1.1rem;
+  margin-right: 0.6rem;
+}
+
+.file {
+  color: var(--muted);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.percent {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  transition: width 0.25s linear;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 4px;
+}
+
+.part {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.partNumber {
+  position: relative;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--faint);
+}
+
+.partFill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--accent);
+  opacity: 0.55;
+  transition: height 0.2s linear;
+}
+
+.done {
+  background: var(--ok-soft);
+  border-color: rgba(79, 209, 165, 0.55);
+}
+
+.done .partNumber {
+  color: var(--ok);
+}
+
+/* Parts that were already on the server when this session started. */
+.done.resumed {
+  background: var(--info-soft);
+  border-color: rgba(111, 168, 255, 0.55);
+}
+
+.done.resumed .partNumber {
+  color: var(--info);
+}
+
+.uploading {
+  border-color: var(--accent);
+}
+
+.uploading .partNumber {
+  color: var(--text);
+}
+
+.failed {
+  background: var(--err-soft);
+  border-color: var(--err);
+}
+
+.failed .partNumber {
+  color: var(--err);
+}
+
+.legend {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+}
+
+.legend li::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.legend .done::before {
+  background: var(--ok-soft);
+  border-color: rgba(79, 209, 165, 0.55);
+}
+
+.legend .done.resumed::before {
+  background: var(--info-soft);
+  border-color: rgba(111, 168, 255, 0.55);
+}
+
+.legend .uploading::before {
+  border-color: var(--accent);
+  background: rgba(240, 98, 42, 0.4);
+}
+
+.legend .failed::before {
+  background: var(--err-soft);
+  border-color: var(--err);
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}

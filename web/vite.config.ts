@@ -9,7 +9,7 @@ const ISSUER = process.env.RIGFORGE_ISSUER ?? "http://localhost:8090";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: Number(process.env.PORT ?? 5173),
     proxy: {
       "/api": { target: API, changeOrigin: true },
       "/issuer": { target: ISSUER, changeOrigin: true, rewrite: (path) => path.replace(/^\/issuer/, "") },

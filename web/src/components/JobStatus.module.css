@@ -1,0 +1,118 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: rgba(79, 209, 165, 0.3);
+}
+
+.busy {
+  color: var(--info);
+  background: var(--info-soft);
+  border-color: rgba(111, 168, 255, 0.3);
+}
+
+.busy .dot {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.wait {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-color: rgba(242, 193, 78, 0.3);
+}
+
+.err {
+  color: var(--err);
+  background: var(--err-soft);
+  border-color: rgba(242, 97, 122, 0.3);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.head strong {
+  font-size: 1.1rem;
+}
+
+.track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--faint);
+}
+
+.stages li::before {
+  content: "○ ";
+}
+
+.past {
+  color: var(--muted);
+}
+
+.stages .past::before {
+  content: "● ";
+  color: var(--ok);
+}
+
+.now {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stages .now::before {
+  content: "◉ ";
+  color: var(--accent);
+}
