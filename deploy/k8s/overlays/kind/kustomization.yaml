@@ -34,19 +34,12 @@ secretGenerator:
     files:
       - ISSUER_PRIVATE_KEY_PEM=issuer-key.pem
 
-patches:
-  # Point the api and worker at MinIO. The public endpoint is what the
-  # browser sees: MinIO's NodePort, mapped to localhost:9900.
-  - target:
-      kind: ConfigMap
-      name: rigforge-config
-    patch: |-
-      - op: replace
-        path: /data/S3_ENDPOINT
-        value: http://minio:9000
-      - op: replace
-        path: /data/S3_PUBLIC_ENDPOINT
-        value: http://localhost:9900
-      - op: replace
-        path: /data/S3_CREATE_BUCKET
-        value: "true"
+# Point the api and worker at MinIO. The public endpoint is what the browser
+# sees: MinIO's NodePort, mapped to localhost:9900 by deploy/kind/cluster.yaml.
+configMapGenerator:
+  - name: rigforge-config
+    behavior: merge
+    literals:
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_ENDPOINT=http://localhost:9900
+      - S3_CREATE_BUCKET=true

@@ -5,7 +5,6 @@ kind: Kustomization
 namespace: rigforge
 resources:
   - namespace.yaml
-  - configmap.yaml
   - postgres.yaml
   - redis.yaml
   - api.yaml
@@ -16,3 +15,25 @@ resources:
 labels:
   - pairs:
       app.kubernetes.io/part-of: rigforge
+
+# Non-secret configuration shared by the api, the worker and the issuer.
+# Generated (rather than a plain ConfigMap) for two reasons: overlays can
+# merge their own values in, and kustomize adds a content hash to the name, so
+# a config change rolls the pods that read it.
+configMapGenerator:
+  - name: rigforge-config
+    literals:
+      - REDIS_URL=redis://redis:6379/0
+      # Cloudflare R2: https://<account id>.r2.cloudflarestorage.com. The
+      # browser uses the same host, so the public endpoint is identical.
+      # Overlays replace both.
+      - S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+      - S3_PUBLIC_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+      - S3_REGION=auto
+      - S3_BUCKET=rigforge-dev
+      - S3_CREATE_BUCKET=false
+      # Where the api fetches the keys it verifies tokens against. Point
+      # these at a real identity provider to replace the bundled dev issuer.
+      - JWT_JWKS_URL=http://issuer:8090/.well-known/jwks.json
+      - JWT_ISSUER=rigforge-dev-issuer
+      - JWT_AUDIENCE=rigforge-api

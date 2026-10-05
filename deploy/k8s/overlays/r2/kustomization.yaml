@@ -1,0 +1,29 @@
+# Overlay for a real cluster with Cloudflare R2 as the object store.
+#
+#   cp config.env.example config.env      # R2 endpoint and bucket
+#   cp ../../base/secret.env.example secret.env   # R2 keys, Postgres password
+#   openssl genrsa -out issuer-key.pem 2048       # only if the dev issuer is kept
+#   kubectl apply -k deploy/k8s/overlays/r2
+#
+# config.env, secret.env and issuer-key.pem are git-ignored. The cluster needs
+# an ingress controller with a default IngressClass, and the bucket needs the
+# CORS policy in docs/r2-cors.json. This overlay has not been run against a
+# live cluster yet (there is none); the kind overlay is the tested path.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rigforge
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: rigforge-config
+    behavior: merge
+    envs:
+      - config.env
+
+secretGenerator:
+  - name: rigforge-secrets
+    envs:
+      - secret.env
+    files:
+      - ISSUER_PRIVATE_KEY_PEM=issuer-key.pem
