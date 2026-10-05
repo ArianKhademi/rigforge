@@ -1,0 +1,24 @@
+{
+  "name": "rigforge",
+  "version": 1,
+  "description": "The fixed 17-joint Rigforge skeleton in its bind pose (a T-pose). Coordinates follow glTF: metres, +Y up, the character faces +Z, and +X is the character's left. Every joint has an identity rest rotation, so 'position' (world space) fully defines the bind pose. 'parent' is an index into this array (-1 for the root). 'end' is the world position of the bone tip for joints with no child joint; it gives leaf bones a direction and length.",
+  "joints": [
+    {"name": "hips",           "parent": -1, "position": [ 0.00, 0.95, 0.00]},
+    {"name": "spine",          "parent": 0,  "position": [ 0.00, 1.10, 0.00]},
+    {"name": "chest",          "parent": 1,  "position": [ 0.00, 1.27, 0.00]},
+    {"name": "neck",           "parent": 2,  "position": [ 0.00, 1.47, 0.00]},
+    {"name": "head",           "parent": 3,  "position": [ 0.00, 1.57, 0.00], "end": [ 0.00, 1.76, 0.00]},
+    {"name": "left_shoulder",  "parent": 2,  "position": [ 0.18, 1.42, 0.00]},
+    {"name": "left_elbow",     "parent": 5,  "position": [ 0.46, 1.42, 0.00]},
+    {"name": "left_wrist",     "parent": 6,  "position": [ 0.72, 1.42, 0.00], "end": [ 0.84, 1.42, 0.00]},
+    {"name": "right_shoulder", "parent": 2,  "position": [-0.18, 1.42, 0.00]},
+    {"name": "right_elbow",    "parent": 8,  "position": [-0.46, 1.42, 0.00]},
+    {"name": "right_wrist",    "parent": 9,  "position": [-0.72, 1.42, 0.00], "end": [-0.84, 1.42, 0.00]},
+    {"name": "left_hip",       "parent": 0,  "position": [ 0.10, 0.90, 0.00]},
+    {"name": "left_knee",      "parent": 11, "position": [ 0.10, 0.50, 0.00]},
+    {"name": "left_ankle",     "parent": 12, "position": [ 0.10, 0.09, 0.00], "end": [ 0.10, 0.02, 0.17]},
+    {"name": "right_hip",      "parent": 0,  "position": [-0.10, 0.90, 0.00]},
+    {"name": "right_knee",     "parent": 14, "position": [-0.10, 0.50, 0.00]},
+    {"name": "right_ankle",    "parent": 15, "position": [-0.10, 0.09, 0.00], "end": [-0.10, 0.02, 0.17]}
+  ]
+}
