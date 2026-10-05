@@ -61,8 +61,11 @@ class RedisJobStore:
     def begin_attempt(self, job_id: str, attempt: int) -> None:
         self._update(job_id, f"begin:{attempt}", status="transcoding", attempt=attempt, progress=0)
 
-    def set_stage(self, job_id: str, status: str, progress: int) -> None:
+    def set_stage(self, job_id: str, status: str, progress: int) -> bool:
+        if not self.r.exists(self._key(job_id)):
+            return False
         self._update(job_id, f"stage:{status}:{progress}", status=status, progress=progress)
+        return True
 
     def schedule_retry(self, job_id: str, next_attempt: int, retry_at: float, error: str) -> None:
         self._update(

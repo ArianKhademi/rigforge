@@ -166,7 +166,10 @@ def main():
     bm.free()
 
     # ---- Skin the mesh to the armature ---------------------------------
-    body.parent = armature
+    # Only the Armature modifier binds the mesh; it is deliberately NOT made a
+    # child of the armature object. glTF ignores a skinned mesh's parent
+    # transforms, so the exporter would emit a node layout the Khronos
+    # validator warns about (NODE_SKINNED_MESH_NON_ROOT).
     modifier = body.modifiers.new("Armature", "ARMATURE")
     modifier.object = armature
 

@@ -39,10 +39,19 @@ class JobStore(Protocol):
 
     def load(self, job_id: str) -> JobRow | None: ...
     def begin_attempt(self, job_id: str, attempt: int) -> None: ...
-    def set_stage(self, job_id: str, status: str, progress: int) -> None: ...
+    def set_stage(self, job_id: str, status: str, progress: int) -> bool:
+        """Record progress. Returns False if the job row no longer exists."""
+        ...
+
     def schedule_retry(self, job_id: str, next_attempt: int, retry_at: float, error: str) -> None: ...
     def fail(self, job_id: str, error: str) -> None: ...
     def complete(self, job_id: str, metadata: dict) -> None: ...
+
+
+class JobGone(Exception):
+    """The job row disappeared while the job was running: the user deleted
+    the asset. The worker stops and drops the message; there is nobody left to
+    produce outputs for."""
 
 
 # A handler processes one job. It reports progress through the callback and
@@ -140,11 +149,18 @@ class Worker:
         self.store.begin_attempt(msg.job_id, msg.attempt)
 
         def progress(status: str, percent: int) -> None:
-            self.store.set_stage(msg.job_id, status, percent)
+            # Every stage change doubles as a check that the job is still
+            # wanted, so a deleted asset stops costing CPU at the next stage
+            # boundary and never gets output files written for it.
+            if self.store.set_stage(msg.job_id, status, percent) is False:
+                raise JobGone(msg.job_id)
 
         try:
             with Heartbeat(self.queue, msg, self.heartbeat_interval):
                 metadata = self.handler(job, progress)
+        except JobGone:
+            log.info("job %s was deleted while running; stopping", msg.job_id)
+            self.queue.ack(msg)
         except PermanentError as exc:
             # Retrying cannot help. Row first, then queue: if we die in
             # between, the FAILED guard above completes the move on redelivery.

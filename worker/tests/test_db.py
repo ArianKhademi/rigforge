@@ -147,6 +147,18 @@ def test_progress_writes_are_throttled_within_a_stage(database):
     assert (job(admin, job_id)["status"], job(admin, job_id)["progress"]) == ("extracting", 30)
 
 
+def test_set_stage_reports_a_deleted_job(database):
+    admin, url = database
+    asset_id, job_id = seed(admin)
+    store = PostgresJobStore(url)
+    store.begin_attempt(job_id, 1)
+    assert store.set_stage(job_id, "extracting", 30) is True
+
+    admin.execute("DELETE FROM assets WHERE id = %s", (asset_id,))  # cascades to the job
+
+    assert store.set_stage(job_id, "writing", 85) is False
+
+
 def test_store_reconnects_after_the_connection_drops(database):
     admin, url = database
     _, job_id = seed(admin)

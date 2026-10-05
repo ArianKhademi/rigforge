@@ -227,6 +227,26 @@ def test_message_for_a_deleted_job_is_dropped(rdb, prefix):
     assert h.dead() == []
 
 
+def test_job_deleted_while_running_is_stopped_and_dropped(rdb, prefix):
+    h = Harness(rdb, prefix)
+    job = h.submit()
+    finished = []
+
+    def handler(row, progress):
+        progress("transcoding", 10)
+        h.store.delete(job)  # the user deletes the asset mid-job
+        progress("extracting", 30)  # the next stage boundary notices
+        finished.append(row.id)  # must not be reached: no outputs for a deleted asset
+        return {}
+
+    h.worker.handler = handler
+    h.worker.run_once()
+
+    assert finished == []
+    h.assert_queue_empty()
+    assert h.dead() == [], "a deleted job is not a failure"
+
+
 def test_row_marked_failed_but_not_yet_dead_lettered_is_finished_on_redelivery(rdb, prefix):
     h = Harness(rdb, prefix)
     job = h.submit()

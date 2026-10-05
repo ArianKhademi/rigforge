@@ -100,21 +100,27 @@ class PostgresJobStore:
         self._last_progress = (job_id, "transcoding", time.monotonic())
         self._publish(job_id)
 
-    def set_stage(self, job_id: str, status: str, progress: int) -> None:
+    def set_stage(self, job_id: str, status: str, progress: int) -> bool:
+        """Returns False if the job row is gone (its asset was deleted)."""
         # Always write a stage change; within a stage write at most twice a second.
         last_job, last_status, last_time = self._last_progress
         now = time.monotonic()
         if (last_job, last_status) == (job_id, status) and now - last_time < 0.5:
-            return
+            return True
         self._last_progress = (job_id, status, now)
         progress = max(0, min(100, int(progress)))
-        self._run(
-            lambda conn: conn.execute(
-                "UPDATE jobs SET status = %s, progress = %s, updated_at = now() WHERE id = %s",
-                (status, progress, job_id),
+        updated = self._run(
+            lambda conn: (
+                conn.execute(
+                    "UPDATE jobs SET status = %s, progress = %s, updated_at = now() WHERE id = %s",
+                    (status, progress, job_id),
+                ).rowcount
             )
         )
+        if updated == 0:
+            return False
         self._publish(job_id)
+        return True
 
     def schedule_retry(self, job_id: str, next_attempt: int, retry_at: float, error: str) -> None:
         self._run(
