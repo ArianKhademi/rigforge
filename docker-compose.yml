@@ -1,0 +1,108 @@
+# Local stack. `make dev` starts everything; `make infra` starts only the
+# backing services (postgres, redis, minio) for running the api, worker and
+# web natively or for the test suites.
+#
+# MinIO stands in for Cloudflare R2: both speak the S3 API, and the api and
+# worker use the same client code for either. To run against real R2 instead,
+# put the S3_* values in .env (see .env.example) and start with `make dev-r2`.
+
+name: rigforge
+
+x-s3-env: &s3-env
+  S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+  S3_REGION: ${S3_REGION:-auto}
+  S3_BUCKET: ${S3_BUCKET:-rigforge-dev}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-rigforge}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-rigforge-dev-secret}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rigforge
+      POSTGRES_PASSWORD: rigforge
+      POSTGRES_DB: rigforge
+    ports: ["55432:5432"] # 5432 is often taken by a local Postgres
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rigforge"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    # AOF persistence: the job stream must survive a Redis restart.
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["56379:6379"]
+    volumes: ["redisdata:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  minio:
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: rigforge
+      MINIO_ROOT_PASSWORD: rigforge-dev-secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  issuer:
+    build: { context: ./api, target: issuer }
+    environment:
+      JWT_ISSUER: rigforge-dev-issuer
+      JWT_AUDIENCE: rigforge-api
+    ports: ["8090:8090"]
+
+  api:
+    build: { context: ./api, target: api }
+    environment:
+      <<: *s3-env
+      DATABASE_URL: postgres://rigforge:rigforge@postgres:5432/rigforge
+      REDIS_URL: redis://redis:6379/0
+      # Presigned URLs are opened by the browser, which reaches MinIO on localhost.
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_CREATE_BUCKET: ${S3_CREATE_BUCKET:-true}
+      JWT_JWKS_URL: http://issuer:8090/.well-known/jwks.json
+      JWT_ISSUER: rigforge-dev-issuer
+      JWT_AUDIENCE: rigforge-api
+      CORS_ORIGINS: http://localhost:5173
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      issuer: { condition: service_started }
+
+  worker:
+    build: { context: ./worker }
+    environment:
+      <<: *s3-env
+      DATABASE_URL: postgres://rigforge:rigforge@postgres:5432/rigforge
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      api: { condition: service_started } # the api runs the migrations
+    deploy:
+      replicas: 2
+
+  web:
+    build: { context: ./web }
+    environment:
+      API_UPSTREAM: http://api:8080
+      ISSUER_UPSTREAM: http://issuer:8090
+    ports: ["8081:8080"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

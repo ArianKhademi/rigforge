@@ -1,0 +1,32 @@
+# secrets and local overrides
+.env
+.env.*
+!.env.example
+deploy/k8s/overlays/*/secret.env
+
+# go
+api/bin/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# model weights are downloaded by `make models` and in the worker image build
+worker/models/
+
+# node
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+*.tsbuildinfo
+
+# generated test data and scratch output
+/tmp/
+*.log
+!docs/*.log
+.DS_Store
