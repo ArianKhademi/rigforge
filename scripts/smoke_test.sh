@@ -29,7 +29,10 @@ if [ -n "${CONNECT_TO:-}" ]; then
   for mapping in $CONNECT_TO; do EXTRA+=(--connect-to "$mapping"); done
 fi
 
-req() { curl -fsS "${EXTRA[@]}" "$@"; }
+# All requests go through c(). The odd-looking expansion is for bash 3.2 (the
+# macOS default), where "${EXTRA[@]}" on an empty array trips `set -u`.
+c() { curl ${EXTRA[@]+"${EXTRA[@]}"} "$@"; }
+req() { c -fsS "$@"; }
 # Tiny JSON reader: the value of the FIRST "name": in the input. Enough for
 # flat responses, and it keeps the script free of a jq dependency so it can
 # run inside a cluster node.
@@ -46,7 +49,7 @@ TOKEN="$(req -X POST "$BASE/issuer/token" -H 'Content-Type: application/json' -d
 [ -n "$TOKEN" ] || fail "no token from the issuer"
 AUTH=(-H "Authorization: Bearer $TOKEN")
 # Without a token the api must refuse.
-[ "$(curl -s "${EXTRA[@]}" -o /dev/null -w '%{http_code}' "$BASE/api/assets")" = 401 ] || fail "api did not require a token"
+[ "$(c -s -o /dev/null -w '%{http_code}' "$BASE/api/assets")" = 401 ] || fail "api did not require a token"
 
 SIZE="$(wc -c <"$SAMPLE" | tr -d ' ')"
 CREATED="$(req "${AUTH[@]}" -X POST "$BASE/api/uploads" -H 'Content-Type: application/json' \
@@ -59,7 +62,7 @@ PART_URL="$(req "${AUTH[@]}" -X POST "$BASE/api/uploads/$UPLOAD_ID/parts" -H 'Co
   -d '{"partNumbers":[1]}' | sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g')"
 [ -n "$PART_URL" ] || fail "no presigned URL"
 # The bytes go straight to the bucket; the api never sees them.
-ETAG="$(curl -fsS "${EXTRA[@]}" -X PUT --data-binary "@$SAMPLE" -D - -o /dev/null "$PART_URL" |
+ETAG="$(c -fsS -X PUT --data-binary "@$SAMPLE" -D - -o /dev/null "$PART_URL" |
   tr -d '\r' | sed -n 's/^[Ee][Tt]ag: *//p' | tr -d '"')"
 [ -n "$ETAG" ] || fail "the bucket returned no ETag"
 req "${AUTH[@]}" -X PUT "$BASE/api/uploads/$UPLOAD_ID/parts/1" -H 'Content-Type: application/json' -d "{\"etag\":\"$ETAG\"}" >/dev/null
@@ -98,8 +101,8 @@ for format in glb bvh; do
   LINK="$(req "${AUTH[@]}" "$BASE/api/assets/$ASSET_ID/export?format=$format" |
     sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g')"
   # A range request for the first 9 bytes: enough to recognise the format.
-  HEAD="$(curl -fsS "${EXTRA[@]}" -r 0-8 "$LINK" | tr -d '\0')"
-  BYTES="$(curl -fsS "${EXTRA[@]}" -o /dev/null -w '%{size_download}' "$LINK")"
+  HEAD="$(c -fsS -r 0-8 "$LINK" | tr -d '\0')"
+  BYTES="$(c -fsS -o /dev/null -w '%{size_download}' "$LINK")"
   case "$format" in
   glb) [ "${HEAD:0:4}" = glTF ] || fail "motion.glb does not start with the glTF magic" ;;
   bvh) [ "$HEAD" = HIERARCHY ] || fail "motion.bvh does not start with HIERARCHY" ;;
