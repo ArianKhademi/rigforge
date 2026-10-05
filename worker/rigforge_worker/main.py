@@ -43,6 +43,7 @@ def serve() -> None:
             process_video, storage=storage, model_path=cfg.pose_model_path, work_dir=cfg.work_dir
         ),
         heartbeat_interval=cfg.heartbeat_interval,
+        alive_file=cfg.alive_file,
     )
 
     # Kubernetes sends SIGTERM before killing a pod. Stop taking new jobs and

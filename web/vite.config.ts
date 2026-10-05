@@ -15,6 +15,12 @@ export default defineConfig({
       "/issuer": { target: ISSUER, changeOrigin: true, rewrite: (path) => path.replace(/^\/issuer/, "") },
     },
   },
+  build: {
+    // Vite's default output folder is "assets", which is also an app route
+    // (/assets/:id). Keeping built files under /static avoids the clash and
+    // lets nginx cache that folder aggressively.
+    assetsDir: "static",
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],

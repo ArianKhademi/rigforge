@@ -13,6 +13,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 from .errors import PermanentError
@@ -64,8 +65,9 @@ class Heartbeat:
     """Context manager that heartbeats a message from a background thread
     while the (blocking, CPU-heavy) handler runs on the main thread."""
 
-    def __init__(self, queue: JobQueue, msg: Message, interval: float):
+    def __init__(self, queue: JobQueue, msg: Message, interval: float, on_beat: Callable[[], None] | None = None):
         self._queue, self._msg, self._interval = queue, msg, interval
+        self._on_beat = on_beat
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name="heartbeat", daemon=True)
 
@@ -75,6 +77,8 @@ class Heartbeat:
         while not self._stop.wait(self._interval):
             try:
                 self._queue.heartbeat(self._msg)
+                if self._on_beat:
+                    self._on_beat()
             except Exception:  # a missed beat is survivable; the next one retries
                 log.exception("heartbeat failed for job %s", self._msg.job_id)
 
@@ -94,12 +98,21 @@ class Worker:
         store: JobStore,
         handler: Handler,
         heartbeat_interval: float = 15.0,
+        alive_file: Path | None = None,
     ):
         self.queue = queue
         self.store = store
         self.handler = handler
         self.heartbeat_interval = heartbeat_interval
+        # Touched on every loop iteration and on every heartbeat during a job.
+        # The Kubernetes liveness probe checks that the file is recent, which
+        # catches a worker that is hung rather than crashed.
+        self.alive_file = alive_file
         self._stopping = threading.Event()
+
+    def _mark_alive(self) -> None:
+        if self.alive_file is not None:
+            self.alive_file.touch()
 
     def stop(self) -> None:
         """Finish the current job, then exit the loop (SIGTERM handler)."""
@@ -110,6 +123,7 @@ class Worker:
         log.info("worker %s consuming", self.queue.consumer)
         while not self._stopping.is_set():
             try:
+                self._mark_alive()
                 self.run_once()
             except Exception:
                 # Redis or Postgres hiccup outside a job: log, back off, retry.
@@ -156,7 +170,7 @@ class Worker:
                 raise JobGone(msg.job_id)
 
         try:
-            with Heartbeat(self.queue, msg, self.heartbeat_interval):
+            with Heartbeat(self.queue, msg, self.heartbeat_interval, on_beat=self._mark_alive):
                 metadata = self.handler(job, progress)
         except JobGone:
             log.info("job %s was deleted while running; stopping", msg.job_id)

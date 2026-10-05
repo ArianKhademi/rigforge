@@ -1,0 +1,49 @@
+# Serves the built single-page app and, so the browser only ever talks to one
+# origin, proxies the api and the dev issuer. On Kubernetes the Ingress routes
+# /api straight to the api Service; this proxy then only carries /issuer.
+
+server {
+    listen 8080;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Characters are uploaded through the api (up to 32 MiB). Videos never
+    # pass through here: they go from the browser straight to the bucket.
+    client_max_body_size 40m;
+
+    location /api/ {
+        proxy_pass ${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Request-Id $request_id;
+        # Server-sent events: pass each event through as it is written and
+        # keep the connection open for long jobs.
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+    }
+
+    # The trailing slash on proxy_pass strips the /issuer prefix.
+    location /issuer/ {
+        proxy_pass ${ISSUER_UPSTREAM}/;
+        proxy_set_header Host $host;
+    }
+
+    # Build output has content hashes in its file names: cache it forever.
+    location /static/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # Everything else is a client-side route: serve the app shell, uncached so
+    # a new deployment is picked up on the next page load.
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri /index.html;
+    }
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+}

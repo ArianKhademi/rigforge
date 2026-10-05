@@ -12,7 +12,11 @@ from .queue import QueueConfig
 PACKAGE_DIR = Path(__file__).resolve().parent
 # worker/rig holds the skeleton definition and the bundled default character.
 RIG_DIR = Path(os.environ.get("RIGFORGE_RIG_DIR", PACKAGE_DIR.parent / "rig"))
-DEFAULT_MODEL_PATH = PACKAGE_DIR.parent / "models" / "pose_landmarker_heavy.task"
+# The pose model: downloaded to worker/models by `make models` for local runs,
+# baked into the image (and pointed to by POSE_MODEL_PATH) in the container.
+DEFAULT_MODEL_PATH = Path(
+    os.environ.get("POSE_MODEL_PATH", PACKAGE_DIR.parent / "models" / "pose_landmarker_heavy.task")
+)
 
 
 @dataclass(frozen=True)
@@ -28,6 +32,7 @@ class Config:
     work_dir: str | None  # parent for per-job temp dirs; None = system default
     consumer_name: str
     heartbeat_interval: float
+    alive_file: Path | None  # touched while the worker is healthy; None = disabled
     queue: QueueConfig
 
     @staticmethod
@@ -52,11 +57,12 @@ class Config:
             s3_bucket=os.environ.get("S3_BUCKET", "rigforge-dev"),
             s3_access_key_id=required("S3_ACCESS_KEY_ID"),
             s3_secret_access_key=required("S3_SECRET_ACCESS_KEY"),
-            pose_model_path=Path(os.environ.get("POSE_MODEL_PATH", DEFAULT_MODEL_PATH)),
+            pose_model_path=DEFAULT_MODEL_PATH,
             work_dir=os.environ.get("RIGFORGE_WORK_DIR") or None,
             # Each worker needs a unique consumer name inside the group. The pod
             # hostname is unique per replica; the pid separates local processes.
             consumer_name=os.environ.get("WORKER_NAME", f"{socket.gethostname()}-{os.getpid()}"),
             heartbeat_interval=float(os.environ.get("JOB_HEARTBEAT_SECONDS", "15")),
+            alive_file=Path(os.environ["WORKER_ALIVE_FILE"]) if os.environ.get("WORKER_ALIVE_FILE") else None,
             queue=queue,
         )
