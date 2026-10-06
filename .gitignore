@@ -32,3 +32,4 @@ web/playwright-report/
 .DS_Store
 deploy/k8s/overlays/*/*.pem
 deploy/k8s/overlays/*/config.env
+tmp/kubeconfig*
