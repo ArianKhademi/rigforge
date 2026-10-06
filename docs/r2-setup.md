@@ -100,7 +100,7 @@ For the Kubernetes overlays, the same values go into
 
 | Symptom | Likely cause |
 | --- | --- |
-| `SignatureDoesNotMatch` | `S3_ENDPOINT` includes the bucket name, or has a trailing slash. It must be exactly `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`. |
+| `SignatureDoesNotMatch` | `S3_ENDPOINT` includes the bucket name. It must be `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` (a trailing slash is tolerated and removed). |
 | `AccessDenied` on create or PUT | The token is not scoped to this bucket, or is read-only. |
 | `NoSuchBucket` | Bucket name mismatch; `S3_CREATE_BUCKET` is `false` on R2 on purpose. |
 | Browser upload stalls at 0% with console CORS errors | Step 6 not done, or the app's origin is missing from the policy. |

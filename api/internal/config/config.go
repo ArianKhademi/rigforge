@@ -78,6 +78,10 @@ func Load() (Config, error) {
 		},
 		CORSOrigins: splitList(env("CORS_ORIGINS", "")),
 	}
+	// A trailing slash (easy to paste from the R2 dashboard) would put a
+	// double slash in every object path and break the request signature.
+	c.S3.Endpoint = strings.TrimRight(c.S3.Endpoint, "/")
+	c.S3.PublicEndpoint = strings.TrimRight(c.S3.PublicEndpoint, "/")
 	if c.S3.PublicEndpoint == "" {
 		c.S3.PublicEndpoint = c.S3.Endpoint
 	}

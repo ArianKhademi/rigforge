@@ -1,0 +1,12 @@
+== Rigforge resumable upload test ==
+date:    2026-10-06T02:37:29Z
+api:     http://localhost:8080
+host:    Darwin arm64, Apple M4
+generating tmp/resume-test/big_2254857830.mov (target 2254857830 bytes)
+wrote tmp/resume-test/big_2254857830.mov: 2255235452 bytes (2.10 GiB), 82.015267s of video
+file:    tmp/resume-test/big_2254857830.mov
+size:    2255235452 bytes (2.100 GiB, 2.255 GB)
+
+-- run 1: upload, to be killed at ~50% --
+upload:  26b988ff-bb43-44c3-8ec0-0f98f420a048
+plan:    34 parts of 67108864 bytes (64 MiB), last part 40642940 bytes

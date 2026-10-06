@@ -52,7 +52,7 @@ class Config:
         return Config(
             database_url=required("DATABASE_URL"),
             redis_url=os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
-            s3_endpoint=required("S3_ENDPOINT"),
+            s3_endpoint=required("S3_ENDPOINT").rstrip("/"),  # a trailing slash breaks request signing
             s3_region=os.environ.get("S3_REGION", "auto"),
             s3_bucket=os.environ.get("S3_BUCKET", "rigforge-dev"),
             s3_access_key_id=required("S3_ACCESS_KEY_ID"),
