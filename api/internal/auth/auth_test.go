@@ -3,6 +3,7 @@ package auth_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -66,7 +67,20 @@ func TestRejectedTokens(t *testing.T) {
 			if rec.Header().Get("WWW-Authenticate") == "" {
 				t.Error("401 without a WWW-Authenticate header")
 			}
+			// The envelope never says why; the header names the failed check.
+			if body := rec.Body.String(); strings.Contains(body, "Err") {
+				t.Errorf("response body leaks the failure detail: %s", body)
+			}
 		})
+	}
+}
+
+func TestRejectionNamesTheFailedCheck(t *testing.T) {
+	e := apitest.New(t)
+	rec := request(e, "Bearer "+e.Issuer.Token(t, "alice", -time.Hour))
+	apitest.WantStatus(t, rec, http.StatusUnauthorized)
+	if got := rec.Header().Get("WWW-Authenticate"); !strings.Contains(got, `error_description="ErrExpired"`) {
+		t.Fatalf("WWW-Authenticate = %q, want it to name ErrExpired", got)
 	}
 }
 

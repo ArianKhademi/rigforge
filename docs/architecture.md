@@ -31,7 +31,7 @@ Layout of the api:
 ```
 api/internal/
   config/      environment -> Config
-  auth/        JWT verification middleware
+  auth/        JWT verification middleware (jwkit underneath)
   httpx/       error envelope, request logging, CORS
   store/       Store interface, Postgres and in-memory implementations, migrations
   storage/     ObjectStore interface, S3 implementation, in-memory fake
@@ -188,7 +188,7 @@ Open choices in the brief and how they were settled.
 | Choice | Decision | Why |
 | --- | --- | --- |
 | Postgres or SQLite | Postgres (pgx) | Two api replicas and two worker pods write concurrently from different pods; SQLite would need one shared file on one node. |
-| JWT library | `lestrrat-go/jwx` v3 | The brief preferred a `jwkit` module if it existed; that folder is empty, so the stated fallback was used. |
+| JWT library | `github.com/ArianKhademi/jwkit/go` for verification, `jwx` v3 for signing | The owner's jwkit module (RS256/ES256 allow-list, key-to-algorithm binding, fixed check order, rate-limited JWKS refetch) verifies tokens; the dev issuer and the test helpers only need to *sign*, which jwkit does not do, so they use jwx. |
 | Queue | Redis Streams, own consumer | Retries, acks and dead-lettering are then explicit and explainable (the brief's stated preference). |
 | Attempts and backoff | 3 attempts; schedule 1 min, 5 min, 15 min | The brief gives both "after 3 failed attempts" and a three-step schedule. Three attempts use the first two delays; the third applies if `JOB_MAX_ATTEMPTS` is raised. |
 | Permanent errors | Dead-lettered on the first attempt | Retrying a file that is not a video only delays the error message by six minutes. |

@@ -44,12 +44,16 @@ func New(t testing.TB) *Env {
 		Events:  &Events{subs: map[string][]chan struct{}{}},
 		Issuer:  authtest.New(t),
 	}
+	verifier, err := auth.NewVerifier(e.Issuer.JWKSURL(), authtest.IssuerName, authtest.Audience)
+	if err != nil {
+		t.Fatal(err)
+	}
 	e.Server = server.New(server.Deps{
 		Store:    e.Store,
 		Objects:  e.Objects,
 		Queue:    e.Queue,
 		Events:   e.Events,
-		Verifier: auth.NewVerifier(e.Issuer.JWKSURL(), authtest.IssuerName, authtest.Audience),
+		Verifier: verifier,
 		Upload: config.Upload{
 			PartSize:       PartSize,
 			MaxSize:        1 << 20,

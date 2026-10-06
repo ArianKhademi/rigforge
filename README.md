@@ -8,7 +8,7 @@ Rigforge is a small but complete pipeline: a Go / Gin api that takes multi-gigab
 
 *Left: `motion.glb` produced by the pipeline, playing in the browser on the bundled mannequin. Right: the source clip. Both are driven by one clock. Recorded from the running app by [`web/e2e/docs.spec.ts`](web/e2e/docs.spec.ts).*
 
-**Stack:** Go 1.26, Gin, PostgreSQL, Redis Streams, Python 3.11, ffmpeg, MediaPipe Pose Landmarker, React 18, TypeScript, react-three-fiber, Docker, Kubernetes (kind).
+**Stack:** Go 1.26, Gin, jwkit, PostgreSQL, Redis Streams, Python 3.11, ffmpeg, MediaPipe Pose Landmarker, React 18, TypeScript, react-three-fiber, Docker, Kubernetes (kind).
 
 ## Contents
 
@@ -109,7 +109,7 @@ More detail on every component, the data model and the reasoning behind the choi
 
 ### Auth
 
-Every `/api/*` route except `/api/health` requires an RS256 JWT. The api verifies the signature against the issuer's JWKS (cached, refetched when a token names an unknown key id), pins the algorithm to RS256 rather than trusting the token's header, and checks issuer, audience and expiry. The user is the `sub` claim and every upload, asset, job and character is scoped to it; someone else's id is a 404, not a 403.
+Every `/api/*` route except `/api/health` requires an RS256 JWT. Verification is done by [jwkit](https://github.com/ArianKhademi/jwkit), the owner's own JWT library: it fetches the issuer's JWKS (cached, refetched with a rate limit when a token names an unknown key id), allows only RS256/ES256 rather than trusting the token's `alg` header, binds each key to one algorithm, and checks issuer, audience and expiry in a fixed order. A rejected request gets a 401 whose `WWW-Authenticate` header names the failed check (`ErrExpired`, `ErrBadSignature`, ...) while the body stays generic. The user is the `sub` claim and every upload, asset, job and character is scoped to it; someone else's id is a 404, not a 403.
 
 Tokens come from a tiny dev issuer in this repo ([`api/cmd/issuer`](api/cmd/issuer/main.go)) so the verification path is real without an external identity provider. It signs a token for any name it is given, so it is for demos only: point `JWT_JWKS_URL`, `JWT_ISSUER` and `JWT_AUDIENCE` at a real IdP to replace it.
 

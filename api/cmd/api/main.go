@@ -70,12 +70,17 @@ func run() error {
 		}
 	}
 
+	verifier, err := auth.NewVerifier(cfg.Auth.JWKSURL, cfg.Auth.Issuer, cfg.Auth.Audience)
+	if err != nil {
+		return err
+	}
+
 	srv := server.New(server.Deps{
 		Store:    db,
 		Objects:  objects,
 		Queue:    &job.RedisQueue{Client: rdb},
 		Events:   &job.RedisEvents{Client: rdb},
-		Verifier: auth.NewVerifier(cfg.Auth.JWKSURL, cfg.Auth.Issuer, cfg.Auth.Audience),
+		Verifier: verifier,
 		Upload:   cfg.Upload,
 		Ready: func(ctx context.Context) error {
 			return errors.Join(db.Ping(ctx), rdb.Ping(ctx).Err())

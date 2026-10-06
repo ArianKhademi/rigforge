@@ -89,12 +89,16 @@ func setup(t *testing.T) *env {
 	t.Cleanup(func() { _ = rdb.Close() })
 
 	issuer := authtest.New(t)
+	verifier, err := auth.NewVerifier(issuer.JWKSURL(), authtest.IssuerName, authtest.Audience)
+	if err != nil {
+		t.Fatal(err)
+	}
 	srv := server.New(server.Deps{
 		Store:    pg,
 		Objects:  objects,
 		Queue:    &job.RedisQueue{Client: rdb},
 		Events:   &job.RedisEvents{Client: rdb},
-		Verifier: auth.NewVerifier(issuer.JWKSURL(), authtest.IssuerName, authtest.Audience),
+		Verifier: verifier,
 		Upload: config.Upload{
 			PartSize: partSize, MaxSize: 1 << 30, PresignTTL: 15 * time.Minute,
 			IdleTimeout: 24 * time.Hour, ReaperInterval: time.Hour,
