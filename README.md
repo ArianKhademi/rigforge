@@ -97,7 +97,7 @@ sequenceDiagram
         S-->>B: ETag
         B->>A: PUT /api/uploads/{id}/parts/{n} {etag}
     end
-    Note over B,A: after a crash or reload: POST /api/uploads/{id}/reconcile<br/>returns the parts the server has; only the rest are sent
+    Note over B,A: after a crash or reload: POST /api/uploads/{id}/reconcile<br/>returns the parts the server has, and only the rest are sent
     B->>A: POST /api/uploads/{id}/complete {characterId}
     A->>S: CompleteMultipartUpload, then HeadObject (verify size)
     A->>A: one transaction: upload completed, asset row, job row
