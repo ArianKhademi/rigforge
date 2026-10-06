@@ -1,0 +1,45 @@
+# Overlay for the on-demand hosted deployment on the Mac mini: a k3s VM on the
+# machine, reached through a Cloudflare Tunnel. Same base as everywhere else,
+# R2 as the bucket, images from GHCR, one worker, a cloudflared Deployment
+# instead of a public ingress and certificate (Cloudflare terminates TLS at
+# its edge and the tunnel carries plain HTTP to Traefik inside the cluster).
+#
+# scripts/hosted.sh writes the three git-ignored inputs from .env and runs
+# everything; see docs/production.md.
+#   config.env     R2 endpoint and bucket
+#   secret.env     R2 keys and the Postgres password
+#   issuer-key.pem the dev issuer's signing key
+#   tunnel-token   the token from Cloudflare Zero Trust -> Tunnels
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rigforge
+resources:
+  - ../../base
+  - cloudflared.yaml
+
+configMapGenerator:
+  - name: rigforge-config
+    behavior: merge
+    envs:
+      - config.env
+
+secretGenerator:
+  - name: rigforge-secrets
+    envs:
+      - secret.env
+    files:
+      - ISSUER_PRIVATE_KEY_PEM=issuer-key.pem
+  - name: cloudflared
+    files:
+      - TUNNEL_TOKEN=tunnel-token
+
+patches:
+  - path: ingress.yaml
+  # One worker is plenty for a demo on a 6 GB VM.
+  - target:
+      kind: Deployment
+      name: worker
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

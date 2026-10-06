@@ -4,6 +4,27 @@ The repo deploys to a local kind cluster today. This is the path to a hosted
 deployment at `https://rigforge.khademi.tech`, what it costs, and what is
 already prepared for it.
 
+## The on-demand option: this Mac
+
+A hosted URL does not need a server in a data centre. `make hosted-up` creates
+a k3s VM on this machine (Lima, 4 CPU / 6 GB), deploys the `tunnel` overlay
+(R2, GHCR images, one worker) and connects it to Cloudflare through a tunnel
+pod, so `https://rigforge.khademi.tech` works with no open ports and no
+certificate to manage; `make hosted-down` stops the VM and the URL goes dark
+until the next `up`. It costs nothing while off and about 2.5 GB of memory and
+a few percent of one core while idle. One-time setup on the Cloudflare side:
+
+1. Move `khademi.tech` to Cloudflare DNS (Add a domain, Free plan, change the
+   nameservers at the registrar).
+2. Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared), name
+   `rigforge`; save the token to `deploy/k8s/overlays/tunnel/tunnel-token`.
+   Public hostname: `rigforge.khademi.tech` → HTTP →
+   `traefik.kube-system.svc.cluster.local:80`.
+3. Add `https://rigforge.khademi.tech` to the bucket's CORS origins
+   (`docs/r2-cors.json`).
+
+The VPS path below is the always-on alternative.
+
 ## What is already there
 
 - Images for all four services, built and pushed to GHCR by CI on every push

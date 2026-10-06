@@ -121,3 +121,17 @@ kind-status: ## Show the pods of the kind deployment
 .PHONY: kind-down
 kind-down: ## Delete the kind cluster
 	kind delete cluster --name rigforge
+
+# ---- the on-demand hosted deployment (k3s VM on this Mac + Cloudflare Tunnel) ----
+
+.PHONY: hosted-up
+hosted-up: ## Start (or create) the k3s VM, deploy, and bring https://rigforge.khademi.tech up
+	scripts/hosted.sh up
+
+.PHONY: hosted-down
+hosted-down: ## Stop the VM; the public URL goes offline, state is kept
+	scripts/hosted.sh down
+
+.PHONY: hosted-status
+hosted-status: ## VM, pods and whether the public URL answers
+	scripts/hosted.sh status

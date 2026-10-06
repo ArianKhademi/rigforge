@@ -33,3 +33,5 @@ web/playwright-report/
 deploy/k8s/overlays/*/*.pem
 deploy/k8s/overlays/*/config.env
 tmp/kubeconfig*
+deploy/k8s/overlays/*/tunnel-token
+tmp/kubeconfig-hosted
