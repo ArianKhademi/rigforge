@@ -7,12 +7,16 @@ already prepared for it.
 ## The on-demand option: this Mac
 
 A hosted URL does not need a server in a data centre. `make hosted-up` creates
-a k3s VM on this machine (Lima, 4 CPU / 6 GB), deploys the `tunnel` overlay
+a k3s VM on this machine (Lima, 4 CPU / 4 GB), deploys the `tunnel` overlay
 (R2, GHCR images, one worker) and connects it to Cloudflare through a tunnel
 pod, so `https://rigforge.khademi.tech` works with no open ports and no
 certificate to manage; `make hosted-down` stops the VM and the URL goes dark
-until the next `up`. It costs nothing while off and about 2.5 GB of memory and
-a few percent of one core while idle. One-time setup on the Cloudflare side:
+until the next `up`. It costs nothing while off. Measured while up and idle
+(Activity Monitor's figure for the VM process, on an M4 Mac mini): 3.4 GB of
+memory and about a fifth of one core, nearly all of it k3s itself; inside the
+guest the stack uses 1.5 GB. The images are built for `linux/arm64` as well
+as `linux/amd64` by CI, which is what makes this work on Apple Silicon.
+One-time setup on the Cloudflare side:
 
 1. Move `khademi.tech` to Cloudflare DNS (Add a domain, Free plan, change the
    nameservers at the registrar).

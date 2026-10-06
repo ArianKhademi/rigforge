@@ -1,0 +1,14 @@
+$ kubectl get pods -n rigforge
+NAME                      READY   STATUS    RESTARTS   AGE
+api-76d9885b95-lww45      1/1     Running   0          3m54s
+api-76d9885b95-mwvpd      1/1     Running   0          3m57s
+issuer-748c5fb696-h6lsb   1/1     Running   0          3m57s
+postgres-0                1/1     Running   0          29m
+redis-6fb44c585c-szf8n    1/1     Running   0          29m
+web-5888886899-2fssg      1/1     Running   0          3m46s
+web-5888886899-kxxkb      1/1     Running   0          3m57s
+worker-5dff779794-jnvm8   1/1     Running   0          3m57s
+
+$ kubectl get nodes -o wide
+NAME            STATUS   ROLES           AGE   VERSION        INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION             CONTAINER-RUNTIME
+lima-rigforge   Ready    control-plane   30m   v1.36.5+k3s1   192.168.5.15   <none>        Ubuntu 26.04.1 LTS   7.0.0-34-generic (arm64)   containerd://2.3.4-k3s1.36

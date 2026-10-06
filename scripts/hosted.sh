@@ -15,8 +15,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VM="rigforge"
+# The host sees the whole allocation as used once the guest's page cache has
+# filled it, so this is the VM's footprint on the Mac. 4 GB fits k3s (about
+# 0.7 GB), the stack idle (about 1 GB) and one worker on a job (about 1 GB
+# more); the worker's 3 GiB limit is a cap, not a reservation.
 CPUS=4
-MEMORY_GB=6
+MEMORY_GB=4
 DISK_GB=40
 DOMAIN="rigforge.khademi.tech"
 OVERLAY="$ROOT/deploy/k8s/overlays/tunnel"
@@ -53,11 +57,17 @@ write_inputs() {
     echo "S3_SECRET_ACCESS_KEY=$(dotenv S3_SECRET_ACCESS_KEY)"
   } >"$OVERLAY/secret.env"
   [ -f "$OVERLAY/issuer-key.pem" ] || openssl genrsa -out "$OVERLAY/issuer-key.pem" 2048 2>/dev/null
-  if [ ! -s "$OVERLAY/tunnel-token" ]; then
-    echo "missing" >"$OVERLAY/tunnel-token"
-    TUNNEL_READY=0
-  else
+  # kustomize needs the token file to exist even when there is no token yet,
+  # so an empty one stands in. A pasted token may carry a newline, which
+  # cloudflared would reject, so a real one is rewritten without whitespace.
+  touch "$OVERLAY/tunnel-token"
+  local token
+  token="$(tr -d '[:space:]' <"$OVERLAY/tunnel-token")"
+  if [ -n "$token" ]; then
+    printf '%s' "$token" >"$OVERLAY/tunnel-token"
     TUNNEL_READY=1
+  else
+    TUNNEL_READY=0
   fi
 }
 
@@ -104,6 +114,7 @@ up() {
   sleep 2
   CONNECT_TO="$DOMAIN:80:127.0.0.1:$LOCAL_PORT" "$ROOT/scripts/smoke_test.sh" "http://$DOMAIN"
   kill "$pf" 2>/dev/null || true
+  wait "$pf" 2>/dev/null || true
   if [ "$TUNNEL_READY" -eq 1 ]; then
     k -n rigforge rollout status deployment/cloudflared --timeout=120s
     for _ in $(seq 1 30); do
