@@ -24,6 +24,19 @@ already prepared for it.
 
 The rest assumes k3s on a VPS.
 
+## One command
+
+Once the VPS exists and DNS points at it, steps 3 to 8 below are one script:
+
+```bash
+ACME_EMAIL=you@example.com scripts/deploy_production.sh root@<ip>
+```
+
+It installs k3s over ssh, fetches the kubeconfig to `tmp/kubeconfig-production`,
+installs cert-manager, applies the overlay, waits for the certificate and runs
+the smoke test against `https://rigforge.khademi.tech`. The manual steps are
+kept here for reference and for debugging.
+
 ## Steps
 
 1. **VPS.** Ubuntu 24.04, 4 vCPU, 8 GB RAM, 80 GB disk, your SSH key. Note

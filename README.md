@@ -29,6 +29,7 @@ Rigforge is a small but complete pipeline: a Go / Gin api that takes multi-gigab
 Needs Docker. Everything else runs in containers.
 
 ```bash
+git clone https://github.com/ArianKhademi/rigforge && cd rigforge
 make dev            # build and start the whole stack
 open http://localhost:8081
 ```

@@ -28,7 +28,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET="${1:?usage: ACME_EMAIL=... deploy_production.sh user@host}"
 DOMAIN="${DOMAIN:-rigforge.khademi.tech}"
-ACME_EMAIL="${ACME_EMAIL:?set ACME_EMAIL to the address Let's Encrypt should use}"
+ACME_EMAIL="${ACME_EMAIL:?set ACME_EMAIL to the address for the Let’s Encrypt account}"
 OVERLAY="$ROOT/deploy/k8s/overlays/production"
 KUBECONFIG_FILE="$ROOT/tmp/kubeconfig-production"
 HOST="${TARGET#*@}"
