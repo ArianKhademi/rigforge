@@ -3,7 +3,10 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-COMPOSE := docker compose
+# docker compose would otherwise read .env from this directory on its own,
+# and .env holds the R2 values (docs/r2-setup.md): every target here would
+# silently run against R2 as soon as that file existed. Only dev-r2 reads it.
+COMPOSE := docker compose --env-file /dev/null
 
 # The test suites reach the docker-compose services on these host ports.
 # Go and Python tests use different Redis databases so they cannot collide.
@@ -28,7 +31,7 @@ dev: ## Build and run the whole stack with docker-compose (web: http://localhost
 .PHONY: dev-r2
 dev-r2: ## Same, but against Cloudflare R2 using the S3_* values in .env
 	@test -f .env || { echo "create .env from .env.example first"; exit 1; }
-	$(COMPOSE) --env-file .env up --build api worker web issuer postgres redis
+	docker compose --env-file .env up --build api worker web issuer postgres redis
 
 .PHONY: infra
 infra: ## Start only postgres, redis and minio (for tests and native development)

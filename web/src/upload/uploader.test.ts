@@ -305,6 +305,33 @@ describe("retries", () => {
     expect(server.createCalls).toBe(1); // same upload, not a new one
     expect(upload.state.phase).toBe("done");
   });
+
+  it("does not send a part whose URL arrived after the upload was stopped", async () => {
+    // Part 1 fails at once and interrupts the upload while part 2 is still
+    // waiting for its presigned URL. When that URL finally arrives the part
+    // must not be sent: nobody would record it, and the next resume would
+    // find a part on the server that this run never reported.
+    const { server, upload } = setup(30, { maxAttempts: 1, concurrency: 2, presignBatch: 1 });
+    server.onPut = (part) => {
+      if (part === 1) throw new Error("offline");
+    };
+    let releaseUrl!: () => void;
+    const urlHeld = new Promise<void>((release) => (releaseUrl = release));
+    const presign = server.presignParts.bind(server);
+    server.presignParts = async (id, parts) => {
+      if (parts.includes(2)) await urlHeld;
+      return presign(id, parts);
+    };
+
+    const run = upload.start();
+    await expect(run).rejects.toEqual(new UploadStopped("interrupted"));
+    expect(server.putAttempts).toEqual([1]);
+
+    releaseUrl();
+    await new Promise((r) => setTimeout(r, 10)); // let the waiting worker wake up and settle
+    expect(server.putAttempts).toEqual([1]); // part 2 was never started
+    expect(upload.state.phase).toBe("interrupted");
+  });
 });
 
 describe("resuming in a new session", () => {

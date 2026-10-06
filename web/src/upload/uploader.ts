@@ -341,6 +341,10 @@ export class ResumableUpload {
       this.dispatch({ type: "part_started", part });
       try {
         const url = await this.urlFor(part, upcoming);
+        // The upload may have been stopped while the URL was being fetched;
+        // sending the part now would only put bytes in the bucket that this
+        // run then ignores.
+        signal.throwIfAborted();
         // slice() does not read anything yet: the bytes are pulled from disk
         // as the request body is sent, one part at a time.
         const etag = await transport.put(

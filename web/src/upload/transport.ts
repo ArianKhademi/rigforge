@@ -24,6 +24,11 @@ function requireETag(etag: string | null): string {
 export const xhrTransport: PartTransport = {
   put(url, body, onProgress, signal) {
     return new Promise<string>((resolve, reject) => {
+      // An "abort" listener only sees future aborts. A signal that is already
+      // aborted (the upload was stopped while this part waited for its URL)
+      // must not start a request at all, or a whole part would be sent and
+      // then thrown away.
+      if (signal.aborted) return reject(signal.reason);
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", url);
       xhr.upload.onprogress = (event) => onProgress(event.loaded);
