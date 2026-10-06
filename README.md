@@ -164,7 +164,7 @@ RESULT: PASS
 
 The same test against the Kubernetes deployment: [`docs/upload_resume_test_kind.log`](docs/upload_resume_test_kind.log) (20 parts before the kill, 0 re-sent, 14 sent after).
 
-The same test against a real **Cloudflare R2** bucket, from this machine over a home connection: [`docs/upload_resume_test_r2.log`](docs/upload_resume_test_r2.log). Killed at exactly 17 of 34 parts, 0 re-sent, 17 sent after the restart, and R2's part ETags turned out to be MD5s as well, so all 34 matched the file's bytes. The run took about 19 minutes, almost all of it upload time at a few MB/s; the api, client and checks are the same as on MinIO. (The MinIO run above is kept because it is what `make resume-test` reproduces without an R2 account; [docs/r2-setup.md](docs/r2-setup.md) is the R2 path.)
+The same test against a real **Cloudflare R2** bucket, from this machine over a home connection: [`docs/upload_resume_test_r2.log`](docs/upload_resume_test_r2.log). Killed at exactly 17 of 34 parts, 0 re-sent, 17 sent after the restart, and R2's part ETags turned out to be MD5s as well, so all 34 matched the file's bytes. The run took 6 min 25 s, almost all of it upload time (about 6 MB/s); the api, client and checks are the same as on MinIO. (The MinIO run above is kept because it is what `make resume-test` reproduces without an R2 account; [docs/r2-setup.md](docs/r2-setup.md) is the R2 path.)
 
 ### In the browser
 
@@ -364,7 +364,7 @@ All on one machine: Apple M4 (10 cores), 24 GB RAM, macOS 26.6.
 | Sample clip in the worker container (linux/arm64 under Docker Desktop) | 8.2 s |
 | Sample clip on the kind cluster, queued to done | about 9 s |
 | 2.1 GiB resume test, whole script (file already generated), local MinIO | 28 s |
-| 2.1 GiB resume test against Cloudflare R2 over a home connection | about 19 min, upload-bound |
+| 2.1 GiB resume test against Cloudflare R2 over a home connection | 6 min 25 s, upload-bound |
 
 These are measurements of one short clip on one machine. Nothing here is extrapolated to other lengths, resolutions or hardware.
 
