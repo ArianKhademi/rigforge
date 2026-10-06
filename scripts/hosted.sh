@@ -3,7 +3,7 @@
 # Lima forwards to the host's port 80, published as https://rigforge.khademi.tech
 # by the cloudflared that runs on the host (docs/production.md).
 #
-#   scripts/hosted.sh up        create or start the VM, deploy, verify
+#   scripts/hosted.sh up        create or start the VM, deploy the newest images, verify
 #   scripts/hosted.sh down      stop the VM (state is kept; "up" is fast)
 #   scripts/hosted.sh status    VM, pods and tunnel
 #   scripts/hosted.sh destroy   delete the VM and its data
@@ -99,6 +99,12 @@ up() {
   echo "==> 2/4 manifests"
   write_inputs
   k apply -k "$OVERLAY"
+  # The manifests name the images by the moving tag "latest", so applying
+  # them changes nothing once they are in place. Restarting the app
+  # Deployments makes every "up" pull whatever CI has published since (the
+  # pods pull on every start), one replica at a time; Postgres and Redis
+  # keep running.
+  k -n rigforge rollout restart deployment/api deployment/issuer deployment/web deployment/worker >/dev/null
 
   echo "==> 3/4 rollout"
   for workload in statefulset/postgres deployment/redis deployment/issuer deployment/api deployment/worker deployment/web; do

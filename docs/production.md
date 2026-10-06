@@ -8,7 +8,9 @@ already prepared for it.
 
 A hosted URL does not need a server in a data centre. `make hosted-up` creates
 a k3s VM on this machine (Lima, 4 CPU / 4 GB), deploys the `tunnel` overlay
-(R2, GHCR images, one worker) and checks it; Lima forwards the VM's ingress
+(R2, GHCR images, one worker), rolls the app pods onto the images CI
+published last, and checks it; deploying a new version is therefore
+"push to `main`, wait for CI, `make hosted-up`"; Lima forwards the VM's ingress
 to the host's port 80, and a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 run by `cloudflared` on the host publishes that as
 `https://rigforge.khademi.tech` with no open ports and no certificate to

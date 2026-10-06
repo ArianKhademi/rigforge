@@ -128,7 +128,7 @@ kind-down: ## Delete the kind cluster
 # ---- the on-demand hosted deployment (k3s VM on this Mac + Cloudflare Tunnel) ----
 
 .PHONY: hosted-up
-hosted-up: ## Start (or create) the k3s VM, deploy, and bring https://rigforge.khademi.tech up
+hosted-up: ## Start (or create) the k3s VM, deploy the newest images, and bring https://rigforge.khademi.tech up
 	scripts/hosted.sh up
 
 .PHONY: hosted-down

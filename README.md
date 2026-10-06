@@ -339,12 +339,12 @@ What is in the manifests ([`deploy/k8s/base`](deploy/k8s/base)):
 ### Hosted, on demand
 
 ```bash
-make hosted-up        # a k3s VM on this machine, deployed and smoke-tested; https://rigforge.khademi.tech while it runs
+make hosted-up        # a k3s VM on this machine running the newest images, smoke-tested; https://rigforge.khademi.tech while it runs
 make hosted-status
 make hosted-down      # stops the VM; the URL goes offline, the data stays
 ```
 
-[`scripts/hosted.sh`](scripts/hosted.sh) creates a 4 CPU / 4 GB [Lima](https://lima-vm.io) VM from its `k3s` template, writes the overlay's config and secrets from `.env`, applies it, waits for the rollout and runs the smoke test against the cluster's ingress on the port Lima forwards to the host, with the public host name so the Ingress rule matches; that is the same path the tunnel's traffic takes. Output ([`docs/k3s-get-pods.txt`](docs/k3s-get-pods.txt)):
+[`scripts/hosted.sh`](scripts/hosted.sh) creates a 4 CPU / 4 GB [Lima](https://lima-vm.io) VM from its `k3s` template, writes the overlay's config and secrets from `.env`, applies it, rolls the app Deployments so they pull the images CI published last, waits for the rollout and runs the smoke test against the cluster's ingress on the port Lima forwards to the host, with the public host name so the Ingress rule matches; that is the same path the tunnel's traffic takes. Output ([`docs/k3s-get-pods.txt`](docs/k3s-get-pods.txt)):
 
 ```text
 $ kubectl get pods -n rigforge
