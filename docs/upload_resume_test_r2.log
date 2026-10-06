@@ -10,3 +10,35 @@ size:    2255235452 bytes (2.100 GiB, 2.255 GB)
 -- run 1: upload, to be killed at ~50% --
 upload:  26b988ff-bb43-44c3-8ec0-0f98f420a048
 plan:    34 parts of 67108864 bytes (64 MiB), last part 40642940 bytes
+sent SIGKILL to the client (pid 1513) when the server had recorded 17 of 34 parts
+client exit status: 137 (killed by signal 9); no client process left
+  PUTs the client had finished:        17 parts
+  PUTs in flight when it was killed:   [17,19,20,21]
+bucket part list before restart: 17 of 34 parts, 1140850688 bytes (17 recorded by the api)
+  parts: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18]
+
+-- run 2: restart the client --
+client resumed upload 26b988ff-bb43-44c3-8ec0-0f98f420a048
+  parts found on the server and skipped: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18]
+  parts PUT by run 2:                    [17,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34]
+bucket part list after restart:  34 of 34 parts, 2255235452 bytes
+
+-- checks --
+parts completed before the kill:              17
+of those, re-sent after the restart:          0  []
+parts whose ETag or LastModified changed:     0  []
+parts missing before the restart:             17
+parts sent after the restart:                 17
+bytes in the bucket vs file size:             2255235452 = 2255235452
+part ETag = MD5 of the file's bytes:          34 of 34 match
+
+-- complete --
+upload completed: asset cacfbe6b-2737-4405-b558-c29d91faae6e, source object 2255235452 bytes (size verified by the api against the bucket)
+cleaned up: asset deleted
+
+RESULT: PASS
+  file size:                         2255235452 bytes (2.10 GiB)
+  parts in total:                    34
+  parts completed before the kill:   17
+  parts re-sent after the restart:   0
+  parts sent after the restart:      17

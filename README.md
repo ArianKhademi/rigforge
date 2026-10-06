@@ -164,7 +164,7 @@ RESULT: PASS
 
 The same test against the Kubernetes deployment: [`docs/upload_resume_test_kind.log`](docs/upload_resume_test_kind.log) (20 parts before the kill, 0 re-sent, 14 sent after).
 
-> **Storage used for these runs: MinIO**, through the same S3 client code and configuration path as R2. The test has not been run against a real Cloudflare R2 bucket yet, because that needs account credentials. [docs/r2-setup.md](docs/r2-setup.md) walks through creating the bucket and token; then `make dev-r2` and `make resume-test`. On R2 the last check (ETag = MD5) is skipped automatically if R2's part ETags are not MD5s.
+The same test against a real **Cloudflare R2** bucket, from this machine over a home connection: [`docs/upload_resume_test_r2.log`](docs/upload_resume_test_r2.log). Killed at exactly 17 of 34 parts, 0 re-sent, 17 sent after the restart, and R2's part ETags turned out to be MD5s as well, so all 34 matched the file's bytes. The run took about 19 minutes, almost all of it upload time at a few MB/s; the api, client and checks are the same as on MinIO. (The MinIO run above is kept because it is what `make resume-test` reproduces without an R2 account; [docs/r2-setup.md](docs/r2-setup.md) is the R2 path.)
 
 ### In the browser
 
@@ -364,6 +364,7 @@ All on one machine: Apple M4 (10 cores), 24 GB RAM, macOS 26.6.
 | Sample clip in the worker container (linux/arm64 under Docker Desktop) | 8.2 s |
 | Sample clip on the kind cluster, queued to done | about 9 s |
 | 2.1 GiB resume test, whole script (file already generated), local MinIO | 28 s |
+| 2.1 GiB resume test against Cloudflare R2 over a home connection | about 19 min, upload-bound |
 
 These are measurements of one short clip on one machine. Nothing here is extrapolated to other lengths, resolutions or hardware.
 
@@ -376,7 +377,6 @@ These are measurements of one short clip on one machine. Nothing here is extrapo
 - **Two calibrations assume the performer stands upright at some point** in the clip: the camera-tilt estimate and the neutral head pitch. A clip of someone sitting throughout would be levelled wrongly.
 - **Static camera, roughly constant distance** for root motion. No foot locking: planted feet can slide by a few centimetres.
 - **Retargeting to arbitrary third-party rigs is out of scope.** A user character must use the Rigforge joint names and hierarchy; proportions and bone axes are free.
-- **Storage.** Everything here ran against MinIO. The R2 run needs credentials (see [above](#the-2-gb-test)).
 - **The dev issuer is not a login system.** Anyone who can reach it gets a token for any name.
 - **The `production`/`r2` overlays are written but unexercised**: no real cluster exists yet ([docs/production.md](docs/production.md) is the plan).
 
