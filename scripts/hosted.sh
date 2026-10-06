@@ -39,7 +39,12 @@ vm_state() { limactl list --format '{{.Name}} {{.Status}}' 2>/dev/null | awk -v 
 # Read one KEY from .env (quotes stripped). Empty if absent.
 dotenv() { sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | head -1 | tr -d '"'"'" | tr -d '\r'; }
 
-ingress_up() { curl -fsS -m 5 -o /dev/null -H "Host: $DOMAIN" "http://$INGRESS/api/health" 2>/dev/null; }
+# Both services the smoke test talks to first, through the ingress: the api
+# directly and the issuer through the web proxy.
+ingress_up() {
+  curl -fsS -m 5 -o /dev/null -H "Host: $DOMAIN" "http://$INGRESS/api/health" 2>/dev/null &&
+    curl -fsS -m 5 -o /dev/null -H "Host: $DOMAIN" "http://$INGRESS/issuer/.well-known/jwks.json" 2>/dev/null
+}
 # Resolved through a public resolver and pinned, so a local resolver that
 # lags a DNS change (a VPN's, say) cannot make a live URL look down.
 public_up() {

@@ -53,6 +53,14 @@ spec:
             httpGet: { path: /healthz, port: http }
           readinessProbe:
             httpGet: { path: /healthz, port: http }
+          # Single replica: on a rollout the new pod is ready before this one
+          # is stopped, but the web proxy can still send a request here for a
+          # moment after that. Keep serving through that moment, as the api
+          # and web pods do.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           resources:
             requests:
               cpu: 10m
