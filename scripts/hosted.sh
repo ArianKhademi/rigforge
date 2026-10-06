@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# The on-demand hosted deployment on this Mac: a k3s VM (Lima) reached
-# through a Cloudflare Tunnel at https://rigforge.khademi.tech.
+# The on-demand hosted deployment on this Mac: a k3s VM (Lima) whose ingress
+# Lima forwards to the host's port 80, published as https://rigforge.khademi.tech
+# by the cloudflared that runs on the host (docs/production.md).
 #
 #   scripts/hosted.sh up        create or start the VM, deploy, verify
 #   scripts/hosted.sh down      stop the VM (state is kept; "up" is fast)
 #   scripts/hosted.sh status    VM, pods and tunnel
 #   scripts/hosted.sh destroy   delete the VM and its data
 #
-# Needs: lima (brew install lima), kubectl, .env with the R2 values
-# (docs/r2-setup.md), and deploy/k8s/overlays/tunnel/tunnel-token from
-# Cloudflare Zero Trust (docs/production.md). Without the token everything
-# still deploys and is checked from this machine; only the public URL waits.
+# Needs: lima (brew install lima), kubectl, and .env with the R2 values
+# (docs/r2-setup.md). The public URL additionally needs cloudflared on this
+# machine with a route for the host name (docs/production.md); without it
+# everything still deploys and is checked from this machine.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,7 +26,10 @@ DISK_GB=40
 DOMAIN="rigforge.khademi.tech"
 OVERLAY="$ROOT/deploy/k8s/overlays/tunnel"
 KUBECONFIG_FILE="$ROOT/tmp/kubeconfig-hosted"
-LOCAL_PORT=8890 # host port forwarded to the cluster's ingress for local checks
+# Lima forwards the VM's listening ports to the host, so the cluster's
+# ingress (Traefik on 80) answers here. cloudflared sends the public traffic
+# to the same address, so the local check below covers the same path.
+INGRESS="127.0.0.1:80"
 
 export KUBECONFIG="$KUBECONFIG_FILE"
 k() { kubectl "$@"; }
@@ -34,6 +38,9 @@ vm_state() { limactl list --format '{{.Name}} {{.Status}}' 2>/dev/null | awk -v 
 
 # Read one KEY from .env (quotes stripped). Empty if absent.
 dotenv() { sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | head -1 | tr -d '"'"'" | tr -d '\r'; }
+
+ingress_up() { curl -fsS -m 5 -o /dev/null -H "Host: $DOMAIN" "http://$INGRESS/api/health" 2>/dev/null; }
+public_up() { curl -fsS -m 10 -o /dev/null "https://$DOMAIN/api/health" 2>/dev/null; }
 
 write_inputs() {
   [ -f "$ROOT/.env" ] || { echo ".env is missing; see docs/r2-setup.md" >&2; exit 1; }
@@ -57,18 +64,6 @@ write_inputs() {
     echo "S3_SECRET_ACCESS_KEY=$(dotenv S3_SECRET_ACCESS_KEY)"
   } >"$OVERLAY/secret.env"
   [ -f "$OVERLAY/issuer-key.pem" ] || openssl genrsa -out "$OVERLAY/issuer-key.pem" 2048 2>/dev/null
-  # kustomize needs the token file to exist even when there is no token yet,
-  # so an empty one stands in. A pasted token may carry a newline, which
-  # cloudflared would reject, so a real one is rewritten without whitespace.
-  touch "$OVERLAY/tunnel-token"
-  local token
-  token="$(tr -d '[:space:]' <"$OVERLAY/tunnel-token")"
-  if [ -n "$token" ]; then
-    printf '%s' "$token" >"$OVERLAY/tunnel-token"
-    TUNNEL_READY=1
-  else
-    TUNNEL_READY=0
-  fi
 }
 
 up() {
@@ -94,12 +89,6 @@ up() {
   echo "==> 2/4 manifests"
   write_inputs
   k apply -k "$OVERLAY"
-  if [ "$TUNNEL_READY" -eq 0 ]; then
-    k -n rigforge scale deployment/cloudflared --replicas=0 >/dev/null
-    echo "no tunnel token yet: cloudflared is scaled to 0 (add $OVERLAY/tunnel-token and run up again)"
-  else
-    k -n rigforge scale deployment/cloudflared --replicas=1 >/dev/null
-  fi
 
   echo "==> 3/4 rollout"
   for workload in statefulset/postgres deployment/redis deployment/issuer deployment/api deployment/worker deployment/web; do
@@ -107,22 +96,22 @@ up() {
   done
 
   echo "==> 4/4 checks"
-  # Reach the cluster's ingress from this machine through the API server, and
-  # send the public host name so the host-based Ingress rule matches.
-  k -n kube-system port-forward svc/traefik "$LOCAL_PORT:80" >/dev/null 2>&1 &
-  local pf=$!
-  sleep 2
-  CONNECT_TO="$DOMAIN:80:127.0.0.1:$LOCAL_PORT" "$ROOT/scripts/smoke_test.sh" "http://$DOMAIN"
-  kill "$pf" 2>/dev/null || true
-  wait "$pf" 2>/dev/null || true
-  if [ "$TUNNEL_READY" -eq 1 ]; then
-    k -n rigforge rollout status deployment/cloudflared --timeout=120s
-    for _ in $(seq 1 30); do
-      if curl -fsS "https://$DOMAIN/api/health" >/dev/null 2>&1; then break; fi
+  for _ in $(seq 1 30); do
+    if ingress_up; then break; fi
+    sleep 2
+  done
+  if ! ingress_up; then
+    echo "the cluster's ingress does not answer on http://$INGRESS; something else may hold port 80 on this machine (lsof -nP -iTCP:80 -sTCP:LISTEN)" >&2
+    exit 1
+  fi
+  # The public host name, resolved to the forwarded port, so the host-based
+  # Ingress rule matches and the request takes the path cloudflared uses.
+  CONNECT_TO="$DOMAIN:80:$INGRESS" "$ROOT/scripts/smoke_test.sh" "http://$DOMAIN"
+  if pgrep -x cloudflared >/dev/null; then
+    for _ in $(seq 1 15); do
+      if public_up; then break; fi
       sleep 2
     done
-    curl -fsS "https://$DOMAIN/api/health" >/dev/null && echo "public: https://$DOMAIN is up" ||
-      echo "public: https://$DOMAIN not reachable yet (DNS or tunnel still propagating; check 'status')"
   fi
   echo
   status
@@ -141,12 +130,10 @@ status() {
   if [ "$(vm_state)" = Running ] && [ -f "$KUBECONFIG_FILE" ]; then
     k get pods -n rigforge 2>/dev/null || true
     echo
-    if curl -fsS -m 10 "https://$DOMAIN/api/health" >/dev/null 2>&1; then
-      echo "public: https://$DOMAIN is up"
-    else
-      echo "public: https://$DOMAIN is not reachable"
-    fi
+    if ingress_up; then echo "ingress: http://$INGRESS answers for $DOMAIN"; else echo "ingress: http://$INGRESS does not answer"; fi
   fi
+  if pgrep -x cloudflared >/dev/null; then echo "cloudflared: running on this machine"; else echo "cloudflared: not running on this machine (docs/production.md)"; fi
+  if public_up; then echo "public: https://$DOMAIN is up"; else echo "public: https://$DOMAIN is not reachable"; fi
 }
 
 destroy() {
@@ -161,7 +148,7 @@ down) down ;;
 status) status ;;
 destroy) destroy ;;
 *)
-  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
   exit 2
   ;;
 esac

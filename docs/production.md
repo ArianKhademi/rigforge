@@ -8,24 +8,54 @@ already prepared for it.
 
 A hosted URL does not need a server in a data centre. `make hosted-up` creates
 a k3s VM on this machine (Lima, 4 CPU / 4 GB), deploys the `tunnel` overlay
-(R2, GHCR images, one worker) and connects it to Cloudflare through a tunnel
-pod, so `https://rigforge.khademi.tech` works with no open ports and no
-certificate to manage; `make hosted-down` stops the VM and the URL goes dark
-until the next `up`. It costs nothing while off. Measured while up and idle
-(Activity Monitor's figure for the VM process, on an M4 Mac mini): 3.4 GB of
-memory and about a fifth of one core, nearly all of it k3s itself; inside the
-guest the stack uses 1.5 GB. The images are built for `linux/arm64` as well
-as `linux/amd64` by CI, which is what makes this work on Apple Silicon.
-One-time setup on the Cloudflare side:
+(R2, GHCR images, one worker) and checks it; Lima forwards the VM's ingress
+to the host's port 80, and a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+run by `cloudflared` on the host publishes that as
+`https://rigforge.khademi.tech` with no open ports and no certificate to
+manage. `make hosted-down` stops the VM and the URL goes dark until the next
+`up`; the tunnel itself can stay up (cloudflared idles at about 30 MB) and
+Cloudflare answers with its own error page while the VM is off. The VM costs
+nothing while off. Measured while up and idle (Activity Monitor's figure for
+the VM process, on an M4 Mac mini): 3.4 GB of memory and about a fifth of one
+core, nearly all of it k3s itself; inside the guest the stack uses 1.5 GB.
+The images are built for `linux/arm64` as well as `linux/amd64` by CI, which
+is what makes this work on Apple Silicon.
+
+One-time setup, with the tunnel shared by every app hosted on the machine
+(one `cloudflared`, one host name per app):
 
 1. Move `khademi.tech` to Cloudflare DNS (Add a domain, Free plan, change the
-   nameservers at the registrar).
-2. Zero Trust → Networks → Tunnels → Create a tunnel (cloudflared), name
-   `rigforge`; save the token to `deploy/k8s/overlays/tunnel/tunnel-token`.
-   Public hostname: `rigforge.khademi.tech` → HTTP →
-   `traefik.kube-system.svc.cluster.local:80`.
+   nameservers at the registrar) and wait until the zone is active.
+2. `brew install cloudflared`, then
+
+   ```bash
+   cloudflared tunnel login                      # opens the browser once
+   cloudflared tunnel create mac-mini
+   cloudflared tunnel route dns mac-mini rigforge.khademi.tech
+   ```
+
+   and `~/.cloudflared/config.yml`:
+
+   ```yaml
+   tunnel: <tunnel id>
+   credentials-file: /Users/<you>/.cloudflared/<tunnel id>.json
+   ingress:
+     - hostname: rigforge.khademi.tech
+       service: http://localhost:80 # the VM's ingress, forwarded by Lima
+     # other apps on this machine go here, one hostname each
+     - service: http_status:404
+   ```
+
+   `cloudflared tunnel run mac-mini` to try it, `sudo cloudflared service
+   install` to keep it running across logins. cloudflared passes the
+   original `Host` header through, which is what the host-based Ingress
+   rule matches on.
 3. Add `https://rigforge.khademi.tech` to the bucket's CORS origins
    (`docs/r2-cors.json`).
+
+`scripts/hosted.sh status` reports the VM, the pods, whether the ingress
+answers on the forwarded port, whether cloudflared is running and whether the
+public URL responds.
 
 The VPS path below is the always-on alternative.
 
