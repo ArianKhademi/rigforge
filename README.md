@@ -1,5 +1,7 @@
 # Rigforge
 
+[![CI](https://github.com/ArianKhademi/rigforge/actions/workflows/ci.yml/badge.svg)](https://github.com/ArianKhademi/rigforge/actions/workflows/ci.yml)
+
 Upload a video of a person moving; get back a glTF motion asset you can preview on a character and export.
 
 Rigforge is a small but complete pipeline: a Go / Gin api that takes multi-gigabyte uploads straight into S3-compatible storage (Cloudflare R2, or MinIO locally) through presigned URLs, Python workers on a Redis Streams job queue that transcode the video, extract the pose and retarget it onto a rigged skeleton, and a React / TypeScript app to upload, browse, preview and export the result. It runs on docker-compose and on Kubernetes.
@@ -335,7 +337,7 @@ What is in the manifests ([`deploy/k8s/base`](deploy/k8s/base)):
 
 Verified on the kind cluster: the smoke test, the full Playwright suite, the 2.1 GiB resume test and the retry demo. Not included: a KEDA autoscaler for workers (the spec made it optional; it was not built).
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) lints and tests all three components against real Postgres, Redis and MinIO, runs the glTF-Validator smoke test, runs the Playwright suite on the compose stack, builds and pushes the images to GHCR on `main`, and has a gated deploy-on-tag job.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) lints and tests all three components against real Postgres, Redis and MinIO, runs the glTF-Validator smoke test, runs the Playwright suite on the compose stack, builds and pushes the images to GHCR on `main`, and has a gated deploy-on-tag job. All of it is green on GitHub's Linux runners, including the end-to-end job.
 
 ## Tests
 
@@ -376,7 +378,7 @@ These are measurements of one short clip on one machine. Nothing here is extrapo
 - **Retargeting to arbitrary third-party rigs is out of scope.** A user character must use the Rigforge joint names and hierarchy; proportions and bone axes are free.
 - **Storage.** Everything here ran against MinIO. The R2 run needs credentials (see [above](#the-2-gb-test)).
 - **The dev issuer is not a login system.** Anyone who can reach it gets a token for any name.
-- **CI and the `production`/`r2` overlays are written but unexercised**: the workflow has not run on GitHub yet and no real cluster exists.
+- **The `production`/`r2` overlays are written but unexercised**: no real cluster exists yet ([docs/production.md](docs/production.md) is the plan).
 
 ## Development notes
 
