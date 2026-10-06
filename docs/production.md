@@ -145,14 +145,20 @@ kept here for reference and for debugging.
 ## Before announcing the URL
 
 - **The dev issuer gives a token to anyone.** On a public URL that means
-  anyone can upload videos into your bucket and use your CPU. The cheapest
-  fix for a portfolio demo is to put the whole site behind Cloudflare Access
-  (Zero Trust, free for up to 50 users): a one-time code to an allowed email
-  before anything, including `/api` and `/issuer`, is reachable. The proper fix
-  is a real identity provider: point `JWT_JWKS_URL`, `JWT_ISSUER` and
-  `JWT_AUDIENCE` at it and delete the issuer Deployment.
+  anyone can upload videos into your bucket and use your CPU. Cloudflare
+  Access does not fit a portfolio link (it needs a list of allowed visitors
+  or an email domain; strangers have neither), so the demo relies on three
+  smaller limits: a Cloudflare rate-limiting rule (Security → WAF → Rate
+  limiting rules, one is free: match `http.request.method eq "POST" and
+  http.request.uri.path eq "/api/uploads"`, 5 requests per 10 seconds per
+  IP, block for 10 seconds), the api's size cap (`UPLOAD_MAX_SIZE`, set to
+  4 GiB in the hosted overlay instead of the 50 GiB default), and the VM
+  being up only while someone is showing the demo. The proper fix is a real
+  identity provider: point `JWT_JWKS_URL`, `JWT_ISSUER` and `JWT_AUDIENCE`
+  at it and delete the issuer Deployment.
 - **Quotas.** There is no per-user storage or job limit yet (listed as future
-  work in the brief). With Access in front this is manageable; without it, add
-  a cap before going public.
+  work in the brief); the limits above bound the damage but do not meter
+  anyone. R2's free tier (10 GB-month) is the backstop: it refuses writes
+  rather than billing.
 - **Backups.** Postgres and Redis use local-path volumes on the single node. For
   a demo that is acceptable; the source of truth for outputs is the bucket.

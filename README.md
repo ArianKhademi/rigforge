@@ -4,7 +4,7 @@
 
 Upload a video of a person moving; get back a glTF motion asset you can preview on a character and export.
 
-Rigforge is a small but complete pipeline: a Go / Gin api that takes multi-gigabyte uploads straight into S3-compatible storage (Cloudflare R2, or MinIO locally) through presigned URLs, Python workers on a Redis Streams job queue that transcode the video, extract the pose and retarget it onto a rigged skeleton, and a React / TypeScript app to upload, browse, preview and export the result. It runs on docker-compose and on Kubernetes.
+Rigforge is a small but complete pipeline: a Go / Gin api that takes multi-gigabyte uploads straight into S3-compatible storage (Cloudflare R2, or MinIO locally) through presigned URLs, Python workers on a Redis Streams job queue that transcode the video, extract the pose and retarget it onto a rigged skeleton, and a React / TypeScript app to upload, browse, preview and export the result. It runs on docker-compose and on Kubernetes; a hosted instance runs on demand at `https://rigforge.khademi.tech` ([details](#hosted-on-demand)).
 
 ![The motion playing on the default character next to the source video](docs/screenshots/preview.gif)
 
@@ -361,7 +361,7 @@ worker-5dff779794-jnvm8   1/1     Running   0          3m57s
 
 The images are built for `linux/amd64` and `linux/arm64` by CI, which is what lets the same manifests run on an Intel VPS and on this Apple Silicon machine. The URL is deliberately not up 24/7: it answers while the VM runs, and the repository is the durable artefact.
 
-Verified on the kind cluster: the smoke test, the full Playwright suite, the 2.1 GiB resume test and the retry demo. Verified on the k3s VM against R2: the smoke test (the sample clip, queued to done in 6 s). Not included: a KEDA autoscaler for workers (the spec made it optional; it was not built).
+Verified on the kind cluster: the smoke test, the full Playwright suite, the 2.1 GiB resume test and the retry demo. Verified on the k3s VM against R2: the smoke test from inside the machine and again from outside through Cloudflare, `https://rigforge.khademi.tech`, the sample clip queued to done in 6 s both times ([`docs/hosted_smoke_test.log`](docs/hosted_smoke_test.log)). Not included: a KEDA autoscaler for workers (the spec made it optional; it was not built).
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) lints and tests all three components against real Postgres, Redis and MinIO, runs the glTF-Validator smoke test, runs the Playwright suite on the compose stack, builds and pushes the images to GHCR on `main`, and has a gated deploy-on-tag job. All of it is green on GitHub's Linux runners, including the end-to-end job.
 
@@ -404,7 +404,7 @@ These are measurements of one short clip on one machine. Nothing here is extrapo
 - **Two calibrations assume the performer stands upright at some point** in the clip: the camera-tilt estimate and the neutral head pitch. A clip of someone sitting throughout would be levelled wrongly.
 - **Static camera, roughly constant distance** for root motion. No foot locking: planted feet can slide by a few centimetres.
 - **Retargeting to arbitrary third-party rigs is out of scope.** A user character must use the Rigforge joint names and hierarchy; proportions and bone axes are free.
-- **The dev issuer is not a login system.** Anyone who can reach it gets a token for any name. On the hosted URL that means anyone can upload into the bucket and use the worker's CPU; the intended fix is Cloudflare Access in front of the whole site ([docs/production.md](docs/production.md)), and until then the URL is only up while the VM is.
+- **The dev issuer is not a login system.** Anyone who can reach it gets a token for any name. On the hosted URL that means anyone can upload into the bucket and use the worker's CPU. Cloudflare Access would not fit (it needs a list of allowed visitors, and a portfolio link has none), so the limits are a Cloudflare rate-limiting rule on upload creation, the api's own size cap, and the fact that the URL is only up while the VM is ([docs/production.md](docs/production.md)).
 - **The `production` overlay (always-on VPS, Let's Encrypt) is written but unexercised.** The hosted deployment runs the `tunnel` overlay instead; the two differ only in how TLS and the public host name are provided.
 
 ## Development notes

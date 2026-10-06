@@ -40,7 +40,14 @@ vm_state() { limactl list --format '{{.Name}} {{.Status}}' 2>/dev/null | awk -v 
 dotenv() { sed -n "s/^$1=//p" "$ROOT/.env" 2>/dev/null | head -1 | tr -d '"'"'" | tr -d '\r'; }
 
 ingress_up() { curl -fsS -m 5 -o /dev/null -H "Host: $DOMAIN" "http://$INGRESS/api/health" 2>/dev/null; }
-public_up() { curl -fsS -m 10 -o /dev/null "https://$DOMAIN/api/health" 2>/dev/null; }
+# Resolved through a public resolver and pinned, so a local resolver that
+# lags a DNS change (a VPN's, say) cannot make a live URL look down.
+public_up() {
+  local ip
+  ip="$(dig +short "$DOMAIN" @1.1.1.1 2>/dev/null | grep -m1 -E '^[0-9.]+$')"
+  [ -n "$ip" ] || return 1
+  curl -fsS -m 10 -o /dev/null --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/api/health" 2>/dev/null
+}
 
 write_inputs() {
   [ -f "$ROOT/.env" ] || { echo ".env is missing; see docs/r2-setup.md" >&2; exit 1; }
@@ -50,6 +57,9 @@ write_inputs() {
     echo "S3_ENDPOINT=$(dotenv S3_ENDPOINT | sed 's#/*$##')"
     echo "S3_PUBLIC_ENDPOINT=$(dotenv S3_PUBLIC_ENDPOINT | sed 's#/*$##')"
     echo "S3_BUCKET=$(dotenv S3_BUCKET)"
+    # The dev issuer lets anyone in, so the public instance caps uploads at
+    # 4 GiB (the default is 50 GiB); see docs/production.md.
+    echo "UPLOAD_MAX_SIZE=4294967296"
   } >"$OVERLAY/config.env"
   # The Postgres password is generated once and kept, since the database
   # keeps its volume across up/down.

@@ -1,0 +1,13 @@
+target: https://rigforge.khademi.tech
+upload:  c5333f4a-349d-4688-9bb8-f8695efdea47 (589156 bytes, 1 part)
+asset:   fde3a2b0-4b96-43b2-8645-055586883f20
+job:     a611812c-5c17-4e3c-a984-29d78f2624af
+  0s  transcoding
+  1s  extracting
+  4s  uploading
+  6s  done
+asset is ready: 156 frames, 5.2 s
+motion.glb: 601544 bytes
+motion.bvh: 70647 bytes
+cleaned up: asset deleted
+SMOKE TEST PASSED
