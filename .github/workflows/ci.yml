@@ -250,7 +250,7 @@ jobs:
   # Runs only when the repository variable DEPLOY_ENABLED is "true", i.e. once
   # a cluster exists. It needs these repository secrets: KUBE_CONFIG (a
   # kubeconfig for the cluster), R2_CONFIG_ENV, R2_SECRET_ENV and
-  # ISSUER_KEY_PEM (the contents of the three files the r2 overlay reads).
+  # ISSUER_KEY_PEM (the contents of the three files the production overlay reads).
   deploy:
     runs-on: ubuntu-latest
     needs: [images, e2e]
@@ -268,12 +268,12 @@ jobs:
           umask 077
           mkdir -p "$HOME/.kube"
           printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
-          cd deploy/k8s/overlays/r2
+          cd deploy/k8s/overlays/production
           printf '%s\n' "$R2_CONFIG_ENV" > config.env
           printf '%s\n' "$R2_SECRET_ENV" > secret.env
           printf '%s\n' "$ISSUER_KEY_PEM" > issuer-key.pem
       - name: Pin the images to this release and apply
-        working-directory: deploy/k8s/overlays/r2
+        working-directory: deploy/k8s/overlays/production
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           version="${GITHUB_REF_NAME#v}"

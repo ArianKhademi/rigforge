@@ -1,0 +1,32 @@
+# Adds the host name and TLS to the base Ingress. cert-manager sees the
+# annotation, solves the HTTP-01 challenge through this same Ingress and
+# stores the certificate in the named Secret; Traefik (k3s's default ingress
+# controller) serves it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rigforge
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  tls:
+    - hosts: [rigforge.khademi.tech]
+      secretName: rigforge-tls
+  rules:
+    - host: rigforge.khademi.tech
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080

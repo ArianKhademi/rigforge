@@ -1,0 +1,28 @@
+# Overlay for the hosted deployment: R2 as the bucket, images from GHCR, and a
+# host-based Ingress with a Let's Encrypt certificate from cert-manager.
+# Setup steps: docs/production.md. The three input files are git-ignored:
+#   config.env      R2 endpoint and bucket (template: config.env.example)
+#   secret.env      R2 keys and the Postgres password (template: ../../base/secret.env.example)
+#   issuer-key.pem  the dev issuer's signing key (openssl genrsa -out issuer-key.pem 2048)
+# Not yet applied to a live cluster; the kind overlay is the tested path.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rigforge
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: rigforge-config
+    behavior: merge
+    envs:
+      - config.env
+
+secretGenerator:
+  - name: rigforge-secrets
+    envs:
+      - secret.env
+    files:
+      - ISSUER_PRIVATE_KEY_PEM=issuer-key.pem
+
+patches:
+  - path: ingress.yaml

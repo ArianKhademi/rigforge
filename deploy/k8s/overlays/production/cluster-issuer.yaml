@@ -1,0 +1,17 @@
+# Let's Encrypt account for cert-manager. Applied once, outside kustomize
+# (it is cluster-scoped and needs cert-manager's CRDs to exist first).
+# Replace the email before applying.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: you@example.com
+    privateKeySecretRef:
+      name: letsencrypt-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
