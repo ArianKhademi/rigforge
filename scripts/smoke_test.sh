@@ -101,7 +101,9 @@ for format in glb bvh; do
   LINK="$(req "${AUTH[@]}" "$BASE/api/assets/$ASSET_ID/export?format=$format" |
     sed -n 's/.*"url":"\([^"]*\)".*/\1/p' | sed 's/\\u0026/\&/g')"
   # A range request for the first 9 bytes: enough to recognise the format.
-  HEAD="$(c -fsS -r 0-8 "$LINK" | tr -d '\0')"
+  # Binary bytes: under a UTF-8 locale BSD tr rejects them ("Illegal byte
+  # sequence"), so this one call works on bytes.
+  HEAD="$(c -fsS -r 0-8 "$LINK" | LC_ALL=C tr -d '\0')"
   BYTES="$(c -fsS -o /dev/null -w '%{size_download}' "$LINK")"
   case "$format" in
   glb) [ "${HEAD:0:4}" = glTF ] || fail "motion.glb does not start with the glTF magic" ;;
